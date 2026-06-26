@@ -4,10 +4,18 @@ import {
   Sparkles, Users, BarChart2, TrendingUp, Grid, Radio, 
   MousePointer, Bot, Send, RotateCw, ZoomIn, ZoomOut, 
   Bed, Eye, EyeOff, Camera, Sliders, Activity, ArrowUpRight, 
-  Award, AlertTriangle, CheckCircle, RefreshCw, X, ChevronRight, Ruler, Compass
+  Award, AlertTriangle, CheckCircle, RefreshCw, X, ChevronRight, Ruler, Compass,
+  Layers, Building, FileCheck, Download, UploadCloud
 } from 'lucide-react';
 import Chart from 'chart.js/auto';
+import jsPDF from 'jspdf';
 import ThreeDViewer from './components/ThreeDViewer';
+import CRM from './components/CRM';
+import VirtualTour from './components/VirtualTour';
+import EMICalculator from './components/EMICalculator';
+import { useTranslation } from 'react-i18next';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
 
 // Core Dataset
 const INITIAL_DATABASE = {
@@ -70,25 +78,32 @@ const INITIAL_DATABASE = {
     { id: "high-604", name: "Highlife - 604 (Tower C)", bhk: 3, area: 1550, price: 12500000, floor: 6, view: "Clubhouse", sunlight: "Moderate", noise: "Medium", investment: 9.3, livability: 8.4 },
     { id: "high-1401", name: "Highlife - 1401 (Tower C)", bhk: 3, area: 1600, price: 13800000, floor: 14, view: "Skyline", sunlight: "Excellent", noise: "Quiet", investment: 9.5, livability: 8.7 },
     { id: "green-v1", name: "Greenwoods - Villa 1", bhk: 5, area: 4200, price: 34000000, floor: 1, view: "Garden", sunlight: "Superb", noise: "Silent", investment: 8.9, livability: 9.8 }
-  ],
-  leads: [
-    { name: "Rajesh Kumar", phone: "+91 98765 01234", email: "rajesh@gmail.com", project: "Shivalik Skyview", score: 88, status: "Hot Lead", action: "Schedule site visit for high floor 4 BHK" },
-    { name: "Neha Patel", phone: "+91 91234 56789", email: "neha.patel@outlook.com", project: "Shivalik Highlife", score: 62, status: "Warm Lead", action: "Send brochure & sample floor plan" },
-    { name: "Vikram Shah", phone: "+91 99887 76655", email: "vikram@shahcorp.in", project: "Shivalik Greenwoods", score: 95, status: "Hot Lead", action: "Director level callback request" },
-    { name: "Ananya Sharma", phone: "+91 94455 66778", email: "ananya.s@yahoo.com", project: "Shivalik Skyview", score: 45, status: "Cold Lead", action: "Follow up via newsletter campaign" }
-  ],
-  activityStream: [
-    { type: "search", message: "Anonymous user searched for 3 BHK in Ambawadi", time: "2 mins ago" },
-    { type: "view", message: "Neha Patel viewed Tower C isometric availability map", time: "5 mins ago" },
-    { type: "ar", message: "Vikram Shah launched AR floor plan viewer on mobile", time: "12 mins ago" },
-    { type: "chat", message: "Ananya Sharma asked AI Advisor about school proximity", time: "20 mins ago" }
   ]
 };
 
 export default function App() {
+  const { t, i18n } = useTranslation();
   // Navigation & Role states
   const [activeTab, setActiveTab] = useState("landing");
   const [role, setRole] = useState("buyer"); 
+  const [activeBuyerPersonaId, setActiveBuyerPersonaId] = useState("");
+
+  // Convex Data
+  const properties = useQuery(api.properties?.getProperties);
+  const inventory = useQuery(api.inventory?.getInventory);
+  const activityStream = useQuery(api.activity?.getActivity);
+  const addActivity = useMutation(api.activity?.addActivity);
+  const leads = useQuery(api.leads?.getLeads);
+  const payments = useQuery(api.crm?.getPayments);
+
+  if (properties === undefined || inventory === undefined || leads === undefined || payments === undefined) {
+    return (
+      <div className="flex align-center justify-center h-100 w-100" style={{ minHeight: '100vh', background: '#0b0f1d', color: '#D4AF37', flexDirection: 'column', gap: '15px' }}>
+        <RefreshCw className="animate-spin" size={36} style={{ animation: 'spin 1.5s linear infinite' }} />
+        <h3>Connecting to Shivalik Cloud Database...</h3>
+      </div>
+    );
+  }
 
   // Project discovery filters
   const [filterLoc, setFilterLoc] = useState("all");
@@ -186,15 +201,13 @@ export default function App() {
   const chartInstances = useRef({});
 
   // Helper telemetry trigger
-  const triggerTelemetry = (type, message) => {
-    setDatabase(prev => {
-      const updatedStream = [
-        { type, message, time: "Just now" },
-        ...prev.activityStream
-      ];
-      if (updatedStream.length > 8) updatedStream.pop();
-      return { ...prev, activityStream: updatedStream };
-    });
+  const triggerTelemetry = (action, detail) => {
+    if(addActivity && typeof addActivity === 'function') {
+      addActivity({
+        message: `User ${action}: ${detail}`,
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      }).catch(console.error);
+    }
   };
 
   // Typewriter effect for AI Narrator
@@ -420,21 +433,21 @@ export default function App() {
   const handleExecAI = (q) => {
     let ans = "";
     if (q.includes("bookings")) {
-      ans = "**Answer:** **Shivalik Highlife** generated the highest bookings volume (42 units) this period.\n\n" +
-        "**Root Cause Analysis:** Lower acquisition cost (starting ₹1.25 Cr) coupled with proximity to the new commercial metro corridor drives volume conversion.\n\n" +
-        "**Recommendation:** Allocate 45% of Q3 marketing budget to Highlife. Increase pricing parameters by 3% on high floors starting next week.";
+      ans = "<strong>Answer:</strong> <strong>Shivalik Highlife</strong> generated the highest bookings volume (42 units) this period.\n\n" +
+        "<strong>Root Cause Analysis:</strong> Lower acquisition cost (starting ₹1.25 Cr) coupled with proximity to the new commercial metro corridor drives volume conversion.\n\n" +
+        "<strong>Recommendation:</strong> Allocate 45% of Q3 marketing budget to Highlife. Increase pricing parameters by 3% on high floors starting next week.";
     } else if (q.includes("unsold")) {
-      ans = "**Answer:** Currently, there are **38 units** unsold across the portfolio (14 in Skyview, 24 in Highlife, 8 in Greenwoods).\n\n" +
-        "**Root Cause Analysis:** Concentrated on lower floors (Floors 1-3) due to lack of panoramic view orientations.\n\n" +
-        "**Recommendation:** Bundle stagnant low-floor units with the **AI Interior Designer Studio** upgrade at discounted rates to speed clearance.";
+      ans = "<strong>Answer:</strong> Currently, there are <strong>38 units</strong> unsold across the portfolio (14 in Skyview, 24 in Highlife, 8 in Greenwoods).\n\n" +
+        "<strong>Root Cause Analysis:</strong> Concentrated on lower floors (Floors 1-3) due to lack of panoramic view orientations.\n\n" +
+        "<strong>Recommendation:</strong> Bundle stagnant low-floor units with the <strong>AI Interior Designer Studio</strong> upgrade at discounted rates to speed clearance.";
     } else if (q.includes("sales channel")) {
-      ans = "**Answer:** The **AI Property Experience platform (D2C)** yields the best conversion efficiency (14.2% visitor-to-visit ratio).\n\n" +
-        "**Root Cause Analysis:** Customers engaging with interactive 3D and customized AR floor plans qualify themselves faster, resolving queries before visiting sites.\n\n" +
-        "**Recommendation:** Integrate the floating AI Chat consultant into the primary corporate website shell to capture pre-qualified leads.";
+      ans = "<strong>Answer:</strong> The <strong>AI Property Experience platform (D2C)</strong> yields the best conversion efficiency (14.2% visitor-to-visit ratio).\n\n" +
+        "<strong>Root Cause Analysis:</strong> Customers engaging with interactive 3D and customized AR floor plans qualify themselves faster, resolving queries before visiting sites.\n\n" +
+        "<strong>Recommendation:</strong> Integrate the floating AI Chat consultant into the primary corporate website shell to capture pre-qualified leads.";
     } else if (q.includes("revenue")) {
-      ans = "**Answer:** Expected revenue for Q3 2026 is **₹160.0 Crore** (projected to reach ₹210.0 Crore by Q4).\n\n" +
-        "**Drivers:** Accelerated handover timelines of Tower A and rapid absorption speeds of Tower C commercial layouts.\n\n" +
-        "**Recommendation:** Accelerated milestone handovers will draw down cash flows faster.";
+      ans = "<strong>Answer:</strong> Expected revenue for Q3 2026 is <strong>₹160.0 Crore</strong> (projected to reach ₹210.0 Crore by Q4).\n\n" +
+        "<strong>Drivers:</strong> Accelerated handover timelines of Tower A and rapid absorption speeds of Tower C commercial layouts.\n\n" +
+        "<strong>Recommendation:</strong> Accelerated milestone handovers will draw down cash flows faster.";
     }
     setExecAnswer(ans);
     triggerTelemetry("chat", `Boardroom AI answered Director query: "${q}"`);
@@ -472,17 +485,14 @@ export default function App() {
     } else {
       setIsScanningSite(true);
       setGeoArStep(1);
-      setArStatusMsg("Scanning site environment via Lidar...");
       
       setTimeout(() => {
         setGeoArStep(2);
-        setArStatusMsg("Lidar Scan Complete. Aligning tower outline along horizon...");
         
         setTimeout(() => {
           setIsScanningSite(false);
           setGeoLocked(true);
           setGeoArStep(3);
-          setArStatusMsg("Hologram anchored. Click floors to query vacancy parameters.");
           triggerTelemetry("ar", `Anchored building hologram model on site.`);
         }, 1500);
       }, 1500);
@@ -623,25 +633,23 @@ export default function App() {
   const handleRoleChange = (roleVal) => {
     setRole(roleVal);
     if (roleVal === "buyer") {
-      switchTab("landing");
+      setActiveTab("landing");
     } else if (roleVal === "sales") {
-      switchTab("leads");
+      setActiveTab("leads");
     } else if (roleVal === "executive") {
-      switchTab("exec-insights");
+      setActiveTab("exec-insights");
     }
   };
 
-  const getFilteredProjects = () => {
-    return database.projects.filter(p => {
-      if (filterLoc !== "all" && p.location !== filterLoc) return false;
-      if (filterBhk !== "all" && !p.bhk.includes(parseInt(filterBhk))) return false;
-      if (filterPrice !== "all") {
-        if (filterPrice === "under2" && p.price >= 20000000) return false;
-        if (filterPrice === "over2" && p.price < 20000000) return false;
-      }
-      if (filterStatus !== "all" && p.status !== filterStatus) return false;
-      return true;
-    });
+  const filteredProperties = properties.filter(p => {
+    const locMatch = filterLoc === "all" || p.location === filterLoc;
+    const bhkMatch = filterBhk === "all" || p.bhk.includes(parseInt(filterBhk));
+    const statMatch = filterStatus === "all" || p.status === filterStatus;
+    return locMatch && bhkMatch && statMatch;
+  });
+
+  const getInventoryForTowerAndFloor = (tower, floor) => {
+    return inventory.filter(i => i.tower === tower && i.floor === floor);
   };
 
   const renderVacancyBlocks = (projId, towerName) => {
@@ -677,26 +685,13 @@ export default function App() {
         );
       }
       rows.push(
-        <div className="floor-row" key={f}>
-          <span className="floor-label">Floor {f}</span>
-          <div className="units-row">{blocks}</div>
+        <div className="matrix-row" key={f}>
+          <span className="matrix-floor-label">Floor {f}</span>
+          <div className="matrix-units-row">{blocks}</div>
         </div>
       );
     }
     return rows;
-  };
-
-  const getARDetails = () => {
-    if (arSelectedUnit === "skyview-301") return { carpet: "1,850 sq.ft.", balcony: "180 sq.ft.", sunlight: "Excellent (8.5/10)" };
-    if (arSelectedUnit === "highlife-1204") return { carpet: "1,600 sq.ft.", balcony: "120 sq.ft.", sunlight: "Moderate (7.2/10)" };
-    return { carpet: "4,200 sq.ft.", balcony: "450 sq.ft.", sunlight: "Outstanding (9.8/10)" };
-  };
-
-  const currentAR = getARDetails();
-
-  const handleFloorClick = (flNum) => {
-    setActiveFloorAlert(`Floor ${flNum}: 2 available 3 BHK apartments. Direct Skyline facing layouts starting at ₹1.95 Cr.`);
-    triggerTelemetry("view", `User queried vacancy for Floor ${flNum} on holograph model`);
   };
 
   return (
@@ -725,25 +720,28 @@ export default function App() {
             <div className="nav-group">
               <div className="nav-group-title">Buyer Experience</div>
               <button className={`nav-item ${activeTab === 'landing' ? 'active' : ''}`} onClick={() => setActiveTab('landing')}>
-                <Home /> Discover Projects
+                <Home /> {t("Discover Projects")}
               </button>
-              <button className={`nav-item ${activeTab === 'township' ? 'active' : ''}`} onClick={() => setActiveTab('township')}>
-                <MapPin /> 3D Township
+              <button className={`nav-item ${activeTab === 'visualize' ? 'active' : ''}`} onClick={() => setActiveTab('visualize')}>
+                <Layers /> {t("Property Visualization")}
+              </button>
+              <button className={`nav-item ${activeTab === '3d-township' ? 'active' : ''}`} onClick={() => setActiveTab('3d-township')}>
+                <Building /> {t("3D Township Explorer")}
+              </button>
+              <button className={`nav-item ${activeTab === 'compare' ? 'active' : ''}`} onClick={() => setActiveTab('compare')}>
+                <TrendingUp /> {t("Compare Properties")}
               </button>
               <button className={`nav-item ${activeTab === 'ai-advisor' ? 'active' : ''}`} onClick={() => setActiveTab('ai-advisor')}>
                 <MessageSquare /> AI Advisor Chat
-              </button>
-              <button className={`nav-item ${activeTab === 'comparison' ? 'active' : ''}`} onClick={() => setActiveTab('comparison')}>
-                <GitCompare /> Compare Properties
-              </button>
-              <button className={`nav-item ${activeTab === 'ar-viewer' ? 'active' : ''}`} onClick={() => setActiveTab('ar-viewer')}>
-                <Layout /> AR Pitch Center
               </button>
               <button className={`nav-item ${activeTab === 'interior' ? 'active' : ''}`} onClick={() => setActiveTab('interior')}>
                 <Paintbrush /> AI Interior Designer
               </button>
               <button className={`nav-item ${activeTab === 'finder' ? 'active' : ''}`} onClick={() => setActiveTab('finder')}>
                 <Sparkles /> Smart Match Finder
+              </button>
+              <button className={`nav-item ${activeTab === 'customer-portal' ? 'active' : ''}`} onClick={() => setActiveTab('customer-portal')}>
+                <FileCheck /> Customer Portal
               </button>
             </div>
           )}
@@ -799,9 +797,10 @@ export default function App() {
             </span>
             <h2>
               {activeTab === "landing" && "Discover Projects"}
-              {activeTab === "township" && "3D Township & Site Explorer"}
+              {activeTab === "visualize" && "Property Visualization"}
+              {activeTab === "3d-township" && "3D Township & Site Explorer"}
               {activeTab === "ai-advisor" && "AI Property Advisor Consultant"}
-              {activeTab === "comparison" && "Property Comparison Matrix"}
+              {activeTab === "compare" && "Property Comparison Matrix"}
               {activeTab === "ar-viewer" && "Boardroom AR/VR Pitch Center"}
               {activeTab === "interior" && "AI Real 3D Interior designer"}
               {activeTab === "finder" && "Smart Match Property Finder"}
@@ -811,9 +810,18 @@ export default function App() {
               {activeTab === "inventory" && "Real-time Block Vacancy Map"}
             </h2>
           </div>
-          <div className="header-actions">
-            <div className="status-indicator">
-              <span className="dot green"></span> Simulation Active
+          <div className="flex align-center gap-4">
+            <select 
+              className="header-lang-select" 
+              value={i18n.language} 
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="gu">ગુજરાતી (Gujarati)</option>
+            </select>
+            <div className="user-profile">
+              <span className="text-muted font-small mr-2">{t("Welcome back,")}</span> Simulation Active
             </div>
           </div>
         </header>
@@ -882,7 +890,7 @@ export default function App() {
               </div>
               
               <div className="project-grid">
-                {getFilteredProjects().map(p => (
+                {filteredProperties.map(p => (
                   <div key={p.id} className="glass-card project-card">
                     <div className="project-card-img-wrapper">
                       <img src={p.image} className="project-card-img" alt={p.name} />
@@ -906,8 +914,22 @@ export default function App() {
             </div>
           )}
 
+          {/* 1.5 VISUALIZE PROPERTY */}
+          {activeTab === "visualize" && (
+            <div className="tab-content h-100">
+              <div className="split-layout h-100">
+                <div className="glass-card flex-1 h-100">
+                  <VirtualTour />
+                </div>
+                <div className="glass-card visualization-sidebar">
+                  <EMICalculator />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 2. 3D TOWNSHIP EXPLORER */}
-          {activeTab === "township" && (
+          {activeTab === "3d-township" && (
             <div className="tab-content">
               <div className="split-layout">
                 {/* 3D Map viewport simulation */}
@@ -1074,7 +1096,7 @@ export default function App() {
           )}
 
           {/* 4. COMPARE PROPERTIES */}
-          {activeTab === "comparison" && (
+          {activeTab === "compare" && (
             <div className="tab-content">
               <div className="glass-card comparison-setup-card">
                 <h3>Property Comparison Engine</h3>
@@ -1181,24 +1203,6 @@ export default function App() {
                         </select>
                       </div>
 
-                      <div className="ar-measurements-card mt-4">
-                        <h4>Blueprints Telemetry Specs</h4>
-                        <div className="telemetry-grid">
-                          <div className="telemetry-item">
-                            <span className="tel-label">Carpet Area</span>
-                            <span className="tel-value">{currentAR.carpet}</span>
-                          </div>
-                          <div className="telemetry-item">
-                            <span className="tel-label">Balcony Area</span>
-                            <span className="tel-value">{currentAR.balcony}</span>
-                          </div>
-                          <div className="telemetry-item">
-                            <span className="tel-label">Sunlight Index</span>
-                            <span className="tel-value text-gold">{currentAR.sunlight}</span>
-                          </div>
-                        </div>
-                      </div>
-
                       <div className="pitch-metric-badge-box">
                         <h5>Sales Conversion Pitch</h5>
                         <ul>
@@ -1251,7 +1255,7 @@ export default function App() {
                           </div>
 
                           <div className="absolute bottom-4 left-2 right-2 flex justify-between gap-1 pointer-events-auto" style={{ zIndex: 10, width: "95%" }}>
-                            <button className="gizmo-btn" onClick={() => adjustARTransform('rotate')} style={{ padding: "4px 8px", fontSize: "10px" }}><RotateCw size={12} /> Rotate</button>
+                            <button className="gizmo-btn" onClick={() => {}} style={{ padding: "4px 8px", fontSize: "10px" }}><RotateCw size={12} /> Rotate</button>
                             <button className="gizmo-btn" onClick={() => setArLaserMeasure(!arLaserMeasure)} style={{ padding: "4px 8px", fontSize: "10px" }}><Ruler size={12} /> Lasers</button>
                             <button className="gizmo-btn" onClick={() => setArFurniture(!arFurniture)} style={{ padding: "4px 8px", fontSize: "10px" }}><Bed size={12} /> Furniture</button>
                           </div>
@@ -1267,7 +1271,6 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                /* NEW FEATURE: ON-SITE GEO-AR LAND VISUALIZER WITH LIDAR SWEEP & INTERACTIVE FLOORS */
                 <div className="split-layout">
                   <div className="ar-pitch-guide-box">
                     <div className="glass-card">
@@ -1363,9 +1366,9 @@ export default function App() {
                           {geoLocked && (
                             <>
                               <div className="hologram-tower-model">
-                                <span className="font-small text-muted" onClick={() => handleFloorClick(12)}>FL 12 🔴</span>
-                                <span className="font-small text-muted" onClick={() => handleFloorClick(8)}>FL 8 🟢</span>
-                                <span className="font-small text-muted" onClick={() => handleFloorClick(4)}>FL 4 🔴</span>
+                                <span className="font-small text-muted" onClick={() => {}}>FL 12 🔴</span>
+                                <span className="font-small text-muted" onClick={() => {}}>FL 8 🟢</span>
+                                <span className="font-small text-muted" onClick={() => {}}>FL 4 🔴</span>
                                 <span style={{ fontSize: "11px", color: "#FFF" }}>TOWER A</span>
                               </div>
                               <div className="hologram-floor-ring"></div>
@@ -1383,10 +1386,6 @@ export default function App() {
                             <button className="btn btn-gold btn-small w-100" onClick={handleGeoAnchorToggle}>
                               {geoLocked ? "⚓ Release Site Anchor" : isScanningSite ? "Scanning..." : "⚓ Anchor Building Hologram"}
                             </button>
-                          </div>
-
-                          <div className="ar-phone-status-overlay">
-                            <span>{geoLocked ? `Tower Hologram locked. Click FL 12 / FL 8 / FL 4` : arStatusMsg}</span>
                           </div>
                         </div>
 
@@ -1486,25 +1485,6 @@ export default function App() {
                         interiorBudget={interiorBudget}
                         timeOfDay={geoTimeOfDay}
                       />
-                    </div>
-
-                    <div className="interior-material-details mt-4">
-                      <h4>3D Room Design Breakdown</h4>
-                      <div className="material-grid">
-                        <div className="material-card">
-                          <h5>Floor Texture</h5>
-                          <p>
-                            {interiorStyle === 'Luxury' && "Polished Carrara Marble tiles"}
-                            {interiorStyle === 'Scandinavian' && "Light oak planks"}
-                            {interiorStyle === 'Minimalist' && "Microcement screed"}
-                            {interiorStyle === 'Modern' && "Engineered timber deck"}
-                          </p>
-                        </div>
-                        <div className="material-card">
-                          <h5>Staged Furniture</h5>
-                          <p>{interiorStyle === 'Luxury' ? "Deep velvet red sofa + gold legs" : "Low profile slate sofa set"}</p>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1640,90 +1620,187 @@ export default function App() {
             </div>
           )}
 
-          {/* 8. LEAD INTELLIGENCE SYSTEM (CRM) */}
-          {activeTab === "leads" && (
+          {/* 8.5 CUSTOMER PORTAL TAB */}
+          {activeTab === "customer-portal" && (
             <div className="tab-content">
-              <div className="leads-layout-grid">
-                <div className="glass-card leads-table-card">
-                  <div className="table-header-row">
-                    <h3>CRM Lead Intelligence & Activity Logging</h3>
-                    <span className="badge badge-gold">Sales Executive Dashboard</span>
-                  </div>
-                  <div className="table-wrapper">
-                    <table className="leads-table">
-                      <thead>
-                        <tr>
-                          <th>Lead Details</th>
-                          <th>Interested Project</th>
-                          <th>Engagement Events</th>
-                          <th>AI Lead Score</th>
-                          <th>Status</th>
-                          <th>Action Recommendation</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {database.leads.map((l, index) => (
-                          <tr key={index}>
-                            <td>
-                              <strong>{l.name}</strong>
-                              <div className="text-muted font-small">{l.phone} • {l.email}</div>
-                            </td>
-                            <td>{l.project}</td>
-                            <td>
-                              <span className="badge badge-gold">Active Session</span>
-                              <div className="text-muted font-small">AR floor plan viewed</div>
-                            </td>
-                            <td className="font-bold text-gold">{l.score}</td>
-                            <td>
-                              <span className={`tag ${l.status === 'Hot Lead' ? 'tag-hot' : l.status === 'Warm Lead' ? 'tag-warm' : 'tag-cold'}`}>
-                                {l.status}
-                              </span>
-                            </td>
-                            <td className="text-muted font-small">{l.action}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+              <div className="section-header-row mb-4">
+                <h2>Customer Dashboard & KYC Portal</h2>
+                <span className="text-muted">Simulate your account view as a registered home buyer</span>
+              </div>
 
-                <div className="glass-card activity-stream-card">
-                  <div className="card-header-small border-accent">
-                    <h4><Activity /> Real-time Activity Simulator</h4>
-                    <span className="text-gold font-small">Telemetry Streams</span>
-                  </div>
-                  <div className="activity-logs-container">
-                    {database.activityStream.map((act, idx) => (
-                      <div className="activity-log-item" key={idx}>
-                        <div className="act-icon">
-                          <Activity size={14} />
-                        </div>
-                        <div className="act-details">
-                          <p>{act.message}</p>
-                          <span className="act-time">{act.time}</span>
+              <div className="glass-card mb-4 p-4">
+                <label className="block mb-2 font-bold text-gold">Choose Your Profile Persona:</label>
+                <select 
+                  className="header-lang-select" 
+                  style={{ width: '100%', maxWidth: '350px' }}
+                  value={activeBuyerPersonaId} 
+                  onChange={e => setActiveBuyerPersonaId(e.target.value)}
+                >
+                  <option value="">Select Buyer Profile...</option>
+                  {leads.map(l => (
+                    <option key={l._id} value={l._id}>{l.name} ({l.project} - {l.status})</option>
+                  ))}
+                </select>
+              </div>
+
+              {activeBuyerPersonaId ? (() => {
+                const currentBuyer = leads.find(l => l._id === activeBuyerPersonaId);
+                if (!currentBuyer) return <p className="text-muted">Loading profile details...</p>;
+                
+                const clientPayments = payments.filter(p => p.leadId === activeBuyerPersonaId);
+                const projectDetail = properties.find(p => p.name === currentBuyer.project);
+
+                return (
+                  <div className="flex flex-col gap-6 fade-in">
+                    {/* Welcome & Info Banner */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="glass-card p-4 border-accent col-span-2">
+                        <h3 className="text-gold">Welcome back, {currentBuyer.name}!</h3>
+                        <p className="text-muted font-small mt-2">
+                          Thank you for choosing Shivalik Group. Here is your unified customer profile and document tracking center.
+                        </p>
+                        <div className="grid grid-cols-2 gap-4 mt-4 text-muted font-small">
+                          <div>
+                            <p className="mb-1"><strong>Interested Project:</strong> {currentBuyer.project}</p>
+                            <p className="mb-1"><strong>Assigned Executive:</strong> {currentBuyer.assignedExecutive || "Sujal Talreja"}</p>
+                          </div>
+                          <div>
+                            <p className="mb-1"><strong>Current Sales Stage:</strong> <span className="text-gold font-bold">{currentBuyer.status}</span></p>
+                            <p className="mb-1"><strong>Contact Registered:</strong> {currentBuyer.phone} | {currentBuyer.email}</p>
+                          </div>
                         </div>
                       </div>
-                    ))}
+
+                      <div className="glass-card p-4 flex flex-col justify-between align-center text-center">
+                        <h4 className="text-muted font-small">Interested Project Brochure</h4>
+                        {projectDetail && projectDetail.brochure ? (
+                          <div className="mt-2">
+                            <p className="font-small text-muted mb-3">{(projectDetail ? projectDetail.name : currentBuyer.project)} Catalog RERA</p>
+                            <a 
+                              href={projectDetail.brochure} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="btn btn-gold btn-small inline-block"
+                            >
+                              <Download size={14} className="inline mr-1" /> Download PDF Brochure
+                            </a>
+                          </div>
+                        ) : (
+                          <p className="text-muted font-small mt-2">Brochure not uploaded yet for {currentBuyer.project}.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Live Payment Schedule Milestones */}
+                    <div className="glass-card p-4">
+                      <h4 className="mb-3 text-gold">My Live Payment Schedule Milestones</h4>
+                      <div className="crm-table-container">
+                        <table className="crm-table">
+                          <thead>
+                            <tr>
+                              <th>Milestone Stage Description</th>
+                              <th>Base Installment</th>
+                              <th>18% GST Amount</th>
+                              <th>Total Payout Value</th>
+                              <th>Due Date</th>
+                              <th>Status</th>
+                              <th>Invoice Receipt</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {clientPayments.map((p) => (
+                              <tr key={p._id}>
+                                <td><strong>{p.stage}</strong></td>
+                                <td>₹{p.amount.toLocaleString()}</td>
+                                <td className="text-muted">₹{p.gstAmount.toLocaleString()}</td>
+                                <td><strong>₹{(p.amount + p.gstAmount).toLocaleString()}</strong></td>
+                                <td>{p.date}</td>
+                                <td>
+                                  <span className={`badge ${p.status === 'Paid' ? 'badge-green' : p.status === 'Pending' ? 'badge-cold' : 'badge-hot'}`}>
+                                    {p.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  {p.status === 'Paid' ? (
+                                    <button 
+                                      className="btn btn-outline btn-small"
+                                      onClick={() => {
+                                        const doc = new jsPDF();
+                                        doc.setFontSize(20);
+                                        doc.text("SHIVALIK GROUP RECEIPT", 20, 30);
+                                        doc.setFontSize(12);
+                                        doc.text(`Received from: ${p.leadName}`, 20, 50);
+                                        doc.text(`Milestone: ${p.stage}`, 20, 60);
+                                        doc.text(`Base: INR ${p.amount.toLocaleString()}`, 20, 70);
+                                        doc.text(`GST: INR ${p.gstAmount.toLocaleString()}`, 20, 80);
+                                        doc.text(`Total: INR ${(p.amount + p.gstAmount).toLocaleString()}`, 20, 90);
+                                        doc.text(`Payment Date: ${p.date}`, 20, 100);
+                                        doc.save(`Receipt_${p.stage.replace(/\s+/g, '_')}.pdf`);
+                                      }}
+                                    >
+                                      Download Invoice PDF
+                                    </button>
+                                  ) : (
+                                    <span className="text-muted font-small">Awaiting Payout</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                            {clientPayments.length === 0 && (
+                              <tr>
+                                <td colSpan="7" className="text-center text-muted p-4">No payments recorded under this persona profile. Log installments via Sales Portal.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* KYC Document Uploads */}
+                    <div className="glass-card p-4">
+                      <h4 className="mb-3 text-gold">My Verified KYC Documents</h4>
+                      <p className="text-muted font-small mb-4">Aadhaar and PAN details loaded persistently.</p>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-2">
+                          <div className="glass-card p-3 flex justify-between align-center font-small">
+                            <span>Aadhaar Card Proof (Aadhaar_Card.pdf)</span>
+                            <span className="badge badge-green">Verified</span>
+                          </div>
+                          <div className="glass-card p-3 flex justify-between align-center font-small">
+                            <span>PAN Card Proof (PAN_Proof.pdf)</span>
+                            <span className="badge badge-green">Verified</span>
+                          </div>
+                        </div>
+
+                        <div className="upload-zone text-center p-4 border-accent" style={{ borderStyle: 'dashed', borderRadius: '8px' }}>
+                          <UploadCloud size={28} className="text-gold mx-auto mb-2" />
+                          <p className="font-small text-muted mb-2">Upload additional Aadhaar/PAN validation proofs</p>
+                          <button 
+                            className="btn btn-outline btn-small"
+                            onClick={() => {
+                              alert("KYC document uploaded successfully! Admin verification is pending.");
+                            }}
+                          >
+                            Browse Local Files
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="simulator-controls mt-4">
-                    <button className="btn btn-outline w-100 font-small" onClick={() => {
-                      const names = ["Suresh Mehta", "Priyanka Joshi", "Harish Gupta", "Karan Dave", "Riddhi Shah"];
-                      const actions = [
-                        { type: "view", msg: "Name viewed Tower A garden orientation metrics" },
-                        { type: "ar", msg: "Name initialized AR room scale measurement tool" },
-                        { type: "chat", msg: "Name queried AI Advisor: 'Which 4 BHK options have sun facing?'" },
-                        { type: "search", msg: "Name filtered properties for Ready-to-move under 2.5 Cr" }
-                      ];
-                      const rN = names[Math.floor(Math.random() * names.length)];
-                      const rA = actions[Math.floor(Math.random() * actions.length)];
-                      triggerTelemetry(rA.type, rA.msg.replace("Name", rN));
-                    }}>
-                      Trigger Random User Action
-                    </button>
-                  </div>
+                );
+              })() : (
+                <div className="glass-card p-8 text-center text-muted">
+                  <Users className="large-icon mb-2 mx-auto" style={{ width: '48px', height: '48px' }} />
+                  <h3>Please select a buyer profile persona from the dropdown above to load your custom buyer dashboard, brochures, and live payment milestones.</h3>
                 </div>
-              </div>
+              )}
             </div>
+          )}
+
+          {/* 9. LEAD SCORING CRM (SALES) */}
+          {activeTab === "leads" && (
+            <CRM />
           )}
 
           {/* 9. SALES ANALYTICS */}
@@ -1825,9 +1902,7 @@ export default function App() {
 
                     <div className="exec-chat-response glass-card mt-4">
                       {execAnswer ? (
-                        <div style={{ whiteSpace: "pre-line" }}>
-                          {execAnswer}
-                        </div>
+                        <div style={{ whiteSpace: "pre-line", lineHeight: "1.6" }} dangerouslySetInnerHTML={{ __html: execAnswer }} />
                       ) : (
                         <div className="empty-state-message">
                           <Radio className="large-icon" />
@@ -1923,9 +1998,7 @@ export default function App() {
                         <span className="stat-value">68.3%</span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="glass-card h-50">
+                  </div>                  <div className="glass-card h-50">
                     <h3>AI Inventory Analytics</h3>
                     <p className="text-muted font-small">Predictive analytics evaluating structural movement rates.</p>
                     
