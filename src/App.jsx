@@ -938,7 +938,7 @@ export default function App() {
                     <div className="viewport-badge"><Layout /> 3D Townsite Simulator</div>
                     <span className="text-gold">Interactive Vector Canvas</span>
                   </div>
-                  <div className="three-d-simulation-container" style={{ width: '100%', height: '100%', minHeight: '450px' }}>
+                  <div className="three-d-simulation-container" style={{ width: '100%', height: '500px', minHeight: '500px', position: 'relative' }}>
                     <ThreeDViewer 
                       mode="township"
                       selectedTower={selectedTower}
@@ -1478,7 +1478,7 @@ export default function App() {
                     </div>
 
                     {/* Viewport carrying perspective */}
-                    <div className="room-3d-viewport" style={{ padding: 0, position: 'relative', minHeight: '420px', overflow: 'hidden' }}>
+                    <div className="room-3d-viewport" style={{ padding: 0, position: 'relative', height: '480px', minHeight: '480px', overflow: 'hidden' }}>
                       <ThreeDViewer 
                         mode="interior"
                         interiorStyle={interiorStyle}

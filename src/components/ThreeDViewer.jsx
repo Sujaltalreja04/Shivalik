@@ -77,25 +77,37 @@ export default function ThreeDViewer({
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // --- SETUP SCENE, CAMERA, RENDERER ---
-    const width = mountRef.current.clientWidth || 800;
-    const height = mountRef.current.clientHeight || 500;
+    const container = mountRef.current;
 
-    const scene = new THREE.Scene();
-    // Premium Slate Gradient-like Background Color
-    scene.background = new THREE.Color(0x0a0f1d);
-    scene.fog = new THREE.FogExp2(0x0a0f1d, 0.015);
+    // --- INIT FUNCTION: called once container has real dimensions ---
+    const initScene = () => {
+      // Get actual container dimensions (fallback to safe defaults)
+      const width = container.clientWidth > 0 ? container.clientWidth : 800;
+      const height = container.clientHeight > 0 ? container.clientHeight : 500;
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      const scene = new THREE.Scene();
+      // Premium Slate Gradient-like Background Color
+      scene.background = new THREE.Color(0x0a0f1d);
+      scene.fog = new THREE.FogExp2(0x0a0f1d, 0.015);
 
-    // Clear previous canvas
-    mountRef.current.innerHTML = '';
-    mountRef.current.appendChild(renderer.domElement);
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // Clear previous canvas and attach new one
+      container.innerHTML = '';
+      container.appendChild(renderer.domElement);
+      
+      // Make the canvas fill the container via CSS
+      renderer.domElement.style.display = 'block';
+      renderer.domElement.style.width = '100%';
+      renderer.domElement.style.height = '100%';
+
+      // Hide loading overlay — scene is now initializing
+      setLoading(false);
 
     // --- PROCEDURAL 3D MESH GENERATORS ---
 
@@ -767,11 +779,12 @@ export default function ThreeDViewer({
 
     animate();
 
-    // Handle Window Resizing
+    // Handle resize: update camera aspect and renderer to match container
     const handleResize = () => {
-      if (!mountRef.current) return;
-      const w = mountRef.current.clientWidth;
-      const h = mountRef.current.clientHeight;
+      if (!container) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -779,9 +792,17 @@ export default function ThreeDViewer({
 
     window.addEventListener('resize', handleResize);
 
+    // Also observe container size changes (tab switch / panel resize)
+    let resizeObs;
+    if (window.ResizeObserver) {
+      resizeObs = new ResizeObserver(handleResize);
+      resizeObs.observe(container);
+    }
+
     return () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener('resize', handleResize);
+      if (resizeObs) resizeObs.disconnect();
       renderer.domElement.removeEventListener('click', handleCanvasClick);
       renderer.domElement.removeEventListener('mousedown', handleMouseDown);
       renderer.domElement.removeEventListener('mousemove', handleMouseMove);
@@ -789,6 +810,45 @@ export default function ThreeDViewer({
       renderer.domElement.removeEventListener('mouseleave', handleMouseUp);
       renderer.domElement.removeEventListener('wheel', handleWheel);
       renderer.dispose();
+      if (container) container.innerHTML = '';
+    };
+    }; // end initScene
+
+    // Use ResizeObserver to call initScene once the container has real dimensions.
+    // This prevents the black screen caused by initializing Three.js before layout paints.
+    let cleanupFn = null;
+    let initObs;
+    
+    const tryInit = () => {
+      if (container.clientWidth > 0 && container.clientHeight > 0) {
+        if (initObs) initObs.disconnect();
+        cleanupFn = initScene();
+      }
+    };
+
+    if (container.clientWidth > 0 && container.clientHeight > 0) {
+      // Container already has dimensions, init immediately
+      cleanupFn = initScene();
+    } else {
+      // Wait for first real layout paint
+      if (window.ResizeObserver) {
+        initObs = new ResizeObserver(() => {
+          if (container.clientWidth > 0 && container.clientHeight > 0) {
+            if (initObs) initObs.disconnect();
+            cleanupFn = initScene();
+          }
+        });
+        initObs.observe(container);
+      } else {
+        // Fallback: small delay for layout
+        const t = setTimeout(() => { cleanupFn = initScene(); }, 100);
+        return () => clearTimeout(t);
+      }
+    }
+
+    return () => {
+      if (initObs) initObs.disconnect();
+      if (cleanupFn) cleanupFn();
     };
   }, [mode]);
 
@@ -810,9 +870,9 @@ export default function ThreeDViewer({
   };
 
   return (
-    <div className="three-d-viewer-root relative w-full h-full overflow-hidden bg-slate-950">
-      {/* 3D Render Port */}
-      <div ref={mountRef} className="w-full h-full min-h-[420px] cursor-grab active:cursor-grabbing" />
+    <div className="three-d-viewer-root relative overflow-hidden bg-slate-950" style={{ width: '100%', height: '100%', minHeight: '420px' }}>
+      {/* 3D Render Port — must have explicit height so Three.js gets real dimensions */}
+      <div ref={mountRef} style={{ width: '100%', height: '100%', minHeight: '420px', display: 'block' }} className="cursor-grab active:cursor-grabbing" />
 
       {/* Loading Overlay */}
       {loading && (
