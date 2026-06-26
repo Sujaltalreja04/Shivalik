@@ -17,6 +17,50 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 
+// Error Boundary for ThreeDViewer — prevents WebGL crashes from killing entire app
+class ThreeDErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('[ThreeDErrorBoundary] Caught error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          width: '100%', height: '500px', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', background: '#0a0f1d',
+          color: '#94A3B8', gap: '16px', borderRadius: '12px'
+        }}>
+          <div style={{ fontSize: '48px' }}>🏗️</div>
+          <div style={{ color: '#D4AF37', fontSize: '18px', fontWeight: 700 }}>3D Engine Unavailable</div>
+          <div style={{ fontSize: '13px', maxWidth: '340px', textAlign: 'center', lineHeight: 1.6 }}>
+            Your browser or device does not support WebGL 3D rendering.
+            Please try Chrome or Edge for the full 3D experience.
+          </div>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{
+              marginTop: '8px', padding: '8px 20px', background: 'rgba(212,175,55,0.15)',
+              border: '1px solid rgba(212,175,55,0.4)', color: '#D4AF37',
+              borderRadius: '8px', cursor: 'pointer', fontSize: '13px'
+            }}
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+
 // Core Dataset
 const INITIAL_DATABASE = {
   projects: [
@@ -969,14 +1013,16 @@ export default function App() {
                     <span className="text-gold">Interactive Vector Canvas</span>
                   </div>
                   <div className="three-d-simulation-container" style={{ width: '100%', height: '500px', minHeight: '500px', position: 'relative' }}>
-                    <ThreeDViewer 
-                      mode="township"
-                      selectedTower={selectedTower}
-                      onSelectTower={handleSelectTower}
-                      onSelectAmenity={handleSelectAmenity}
-                      highlightFloor={activeFloorAlert}
-                      timeOfDay={geoTimeOfDay}
-                    />
+                    <ThreeDErrorBoundary>
+                      <ThreeDViewer 
+                        mode="township"
+                        selectedTower={selectedTower}
+                        onSelectTower={handleSelectTower}
+                        onSelectAmenity={handleSelectAmenity}
+                        highlightFloor={activeFloorAlert}
+                        timeOfDay={geoTimeOfDay}
+                      />
+                    </ThreeDErrorBoundary>
                   </div>
                   <div className="helper-text-bar"><MousePointer /> Left-Click & Drag to rotate. Scroll to Zoom. Click Towers or Clubhouse Gym/Pool to sync details.</div>
                 </div>
@@ -1509,12 +1555,14 @@ export default function App() {
 
                     {/* Viewport carrying perspective */}
                     <div className="room-3d-viewport" style={{ padding: 0, position: 'relative', height: '480px', minHeight: '480px', overflow: 'hidden' }}>
-                      <ThreeDViewer 
-                        mode="interior"
-                        interiorStyle={interiorStyle}
-                        interiorBudget={interiorBudget}
-                        timeOfDay={geoTimeOfDay}
-                      />
+                      <ThreeDErrorBoundary>
+                        <ThreeDViewer 
+                          mode="interior"
+                          interiorStyle={interiorStyle}
+                          interiorBudget={interiorBudget}
+                          timeOfDay={geoTimeOfDay}
+                        />
+                      </ThreeDErrorBoundary>
                     </div>
                   </div>
                 </div>

@@ -13,27 +13,32 @@ export default function ThreeDViewer({
   highlightFloor = null,
 }) {
   const mountRef = useRef(null);
-  const [viewMode, setViewMode] = useState('dollhouse'); // 'dollhouse' or 'vr'
+  const [viewMode, setViewMode] = useState('dollhouse');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const mountedRef = useRef(true); // track if component is still mounted
 
-  // Keep control states in refs to access in render loop
-  const stateRef = useRef({
-    viewMode: 'dollhouse',
-    style: interiorStyle,
-    time: timeOfDay,
-    selectedTower: selectedTower,
-    highlightFloor: highlightFloor,
-    keys: { w: false, a: false, s: false, d: false },
-    cameraYaw: -Math.PI / 4,
-    cameraPitch: -Math.PI / 6,
-    vrYaw: 0,
-    vrPitch: 0,
-    radius: 18,
-    vrPos: new THREE.Vector3(0, 1.6, 5),
-    target: new THREE.Vector3(0, 0, 0),
-    isDragging: false,
-    prevMouse: { x: 0, y: 0 }
-  });
+  // Keep control states in refs — initialized lazily in useEffect to avoid calling THREE during render
+  const stateRef = useRef(null);
+  if (!stateRef.current) {
+    stateRef.current = {
+      viewMode: 'dollhouse',
+      style: interiorStyle,
+      time: timeOfDay,
+      selectedTower: selectedTower,
+      highlightFloor: highlightFloor,
+      keys: { w: false, a: false, s: false, d: false },
+      cameraYaw: -Math.PI / 4,
+      cameraPitch: -Math.PI / 6,
+      vrYaw: 0,
+      vrPitch: 0,
+      radius: 18,
+      vrPos: null,   // initialized inside useEffect (THREE.Vector3)
+      target: null,  // initialized inside useEffect (THREE.Vector3)
+      isDragging: false,
+      prevMouse: { x: 0, y: 0 }
+    };
+  }
 
   // Track state updates
   useEffect(() => {
@@ -75,15 +80,17 @@ export default function ThreeDViewer({
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     if (!mountRef.current) return;
 
     const container = mountRef.current;
 
-    // --- INIT FUNCTION: called once container has real dimensions ---
+    // --- INIT FUNCTION: wrapped in try-catch to prevent production crashes ---
     const initScene = () => {
-      // Get actual container dimensions (fallback to safe defaults)
-      const width = container.clientWidth > 0 ? container.clientWidth : 800;
-      const height = container.clientHeight > 0 ? container.clientHeight : 500;
+      try {
+        // Get actual container dimensions (fallback to safe defaults)
+        const width = container.clientWidth > 0 ? container.clientWidth : 800;
+        const height = container.clientHeight > 0 ? container.clientHeight : 500;
 
       const scene = new THREE.Scene();
       // Premium Slate Gradient-like Background Color
@@ -106,8 +113,16 @@ export default function ThreeDViewer({
       renderer.domElement.style.width = '100%';
       renderer.domElement.style.height = '100%';
 
+      // Initialize THREE.Vector3 objects here (safe inside effect)
+      if (!stateRef.current.vrPos) {
+        stateRef.current.vrPos = new THREE.Vector3(0, 1.6, 5);
+      }
+      if (!stateRef.current.target) {
+        stateRef.current.target = new THREE.Vector3(0, 0, 0);
+      }
+
       // Hide loading overlay — scene is now initializing
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
 
     // --- PROCEDURAL 3D MESH GENERATORS ---
 
@@ -120,14 +135,13 @@ export default function ThreeDViewer({
       emissiveIntensity: 0.1
     });
 
-    const windowGlassMat = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
+    // Simple glass material (MeshPhysicalMaterial with transmission requires WebGL2 extensions - use MeshStandardMaterial for compatibility)
+    const windowGlassMat = new THREE.MeshStandardMaterial({
+      color: 0x7dd3fc,
       transparent: true,
-      opacity: 0.3,
-      roughness: 0.1,
-      metalness: 0.9,
-      transmission: 0.9,
-      ior: 1.5
+      opacity: 0.25,
+      roughness: 0.05,
+      metalness: 0.95,
     });
 
     const glowWindowMat = new THREE.MeshStandardMaterial({
@@ -812,19 +826,21 @@ export default function ThreeDViewer({
       renderer.dispose();
       if (container) container.innerHTML = '';
     };
+      } catch (err) {
+        // Catch any WebGL / Three.js error to prevent crashing the entire app
+        console.error('[ThreeDViewer] WebGL initialization failed:', err);
+        if (mountedRef.current) {
+          setLoading(false);
+          setError(err?.message || 'WebGL initialization failed');
+        }
+        return () => {};
+      }
     }; // end initScene
 
     // Use ResizeObserver to call initScene once the container has real dimensions.
     // This prevents the black screen caused by initializing Three.js before layout paints.
     let cleanupFn = null;
     let initObs;
-    
-    const tryInit = () => {
-      if (container.clientWidth > 0 && container.clientHeight > 0) {
-        if (initObs) initObs.disconnect();
-        cleanupFn = initScene();
-      }
-    };
 
     if (container.clientWidth > 0 && container.clientHeight > 0) {
       // Container already has dimensions, init immediately
@@ -841,12 +857,13 @@ export default function ThreeDViewer({
         initObs.observe(container);
       } else {
         // Fallback: small delay for layout
-        const t = setTimeout(() => { cleanupFn = initScene(); }, 100);
-        return () => clearTimeout(t);
+        const t = setTimeout(() => { cleanupFn = initScene(); }, 150);
+        return () => { clearTimeout(t); mountedRef.current = false; };
       }
     }
 
     return () => {
+      mountedRef.current = false;
       if (initObs) initObs.disconnect();
       if (cleanupFn) cleanupFn();
     };
@@ -870,16 +887,42 @@ export default function ThreeDViewer({
   };
 
   return (
-    <div className="three-d-viewer-root relative overflow-hidden bg-slate-950" style={{ width: '100%', height: '100%', minHeight: '420px' }}>
+    <div className="three-d-viewer-root relative overflow-hidden" style={{ width: '100%', height: '100%', minHeight: '420px', background: '#0a0f1d' }}>
       {/* 3D Render Port — must have explicit height so Three.js gets real dimensions */}
       <div ref={mountRef} style={{ width: '100%', height: '100%', minHeight: '420px', display: 'block' }} className="cursor-grab active:cursor-grabbing" />
 
+      {/* Error Fallback — shown if WebGL fails */}
+      {error && (
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', background: '#0a0f1d',
+          color: '#94A3B8', gap: '16px', padding: '32px', textAlign: 'center', zIndex: 30
+        }}>
+          <div style={{ fontSize: '48px' }}>🏗️</div>
+          <div style={{ color: '#D4AF37', fontSize: '18px', fontWeight: 700 }}>3D Engine Unavailable</div>
+          <div style={{ fontSize: '13px', maxWidth: '320px', lineHeight: 1.6 }}>
+            Your browser or device does not support WebGL 3D rendering. 
+            Please try Chrome or Edge for the full 3D experience.
+          </div>
+          <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px' }}>
+            Technical detail: {error}
+          </div>
+        </div>
+      )}
+
       {/* Loading Overlay */}
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-amber-500 font-medium text-sm">Initializing 3D Engine...</span>
+      {loading && !error && (
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', background: 'rgba(10,15,29,0.85)', zIndex: 20
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', border: '3px solid #D4AF37',
+              borderTopColor: 'transparent', borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+            <span style={{ color: '#D4AF37', fontSize: '13px', fontWeight: 600 }}>Initializing 3D Engine...</span>
           </div>
         </div>
       )}
