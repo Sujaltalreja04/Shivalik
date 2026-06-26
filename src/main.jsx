@@ -5,7 +5,7 @@ import './index.css'
 import './i18n.js'
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 
-const convexUrl = import.meta.env.VITE_CONVEX_URL || "https://placeholder-convex-url.convex.cloud";
+const convexUrl = import.meta.env.VITE_CONVEX_URL || "https://acoustic-robin-329.convex.cloud";
 const convex = new ConvexReactClient(convexUrl);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
