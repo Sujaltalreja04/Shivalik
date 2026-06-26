@@ -708,11 +708,41 @@ export default function App() {
 
         <div className="role-selector-container">
           <label>Portal View Mode</label>
-          <select value={role} onChange={(e) => handleRoleChange(e.target.value)}>
-            <option value="buyer">Customer / Buyer Portal</option>
-            <option value="sales">Sales Executive Portal</option>
-            <option value="executive">Executive Management Portal</option>
-          </select>
+          <div className="portal-role-list">
+            <button
+              className={`portal-role-item ${role === 'buyer' ? 'active' : ''}`}
+              onClick={() => handleRoleChange('buyer')}
+            >
+              <span className="portal-role-icon">🏠</span>
+              <div className="portal-role-info">
+                <span className="portal-role-name">Customer Portal</span>
+                <span className="portal-role-sub">Buyer Experience</span>
+              </div>
+              {role === 'buyer' && <span className="portal-role-dot" />}
+            </button>
+            <button
+              className={`portal-role-item ${role === 'sales' ? 'active' : ''}`}
+              onClick={() => handleRoleChange('sales')}
+            >
+              <span className="portal-role-icon">📊</span>
+              <div className="portal-role-info">
+                <span className="portal-role-name">Sales Executive</span>
+                <span className="portal-role-sub">Sales Intelligence</span>
+              </div>
+              {role === 'sales' && <span className="portal-role-dot" />}
+            </button>
+            <button
+              className={`portal-role-item ${role === 'executive' ? 'active' : ''}`}
+              onClick={() => handleRoleChange('executive')}
+            >
+              <span className="portal-role-icon">🏢</span>
+              <div className="portal-role-info">
+                <span className="portal-role-name">Executive Board</span>
+                <span className="portal-role-sub">Management View</span>
+              </div>
+              {role === 'executive' && <span className="portal-role-dot" />}
+            </button>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
