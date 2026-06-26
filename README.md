@@ -1,16 +1,76 @@
-# React + Vite
+# 🏢 Shivalik AI Property Experience & CRM Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+India's first AI & AR-driven property discovery, 3D interactive visualization, and full-stack CRM intelligence portal designed for modern home buyers, brokers, and developers.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📸 3D Property Visualization & Experience Showcase
 
-## React Compiler
+### 🛋️ Luxury AI-Generated 3D Interior Styler
+Below is the real-time simulation output of the **3D Room Customizer and Interior Designer** showing modern glassmorphic lighting and customized furniture layouts:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+![3D Luxury Interior Style](public/interior_luxury.png)
 
-## Expanding the ESLint configuration
+### 🌇 Shivalik Residential High-Rise Portfolios
+Experience structural height mappings, sunlight ratings, and interactive walk-through vacancies inside our featured properties:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+![Shivalik Skyview Tower](public/skyview.png)
+
+---
+
+## ⚡ Core Features
+
+### 1. 3D Township Explorer
+* **Interactive WebGL Vector Canvas**: Directly map coordinates of towers, community pools, and green yoga sanctuaries.
+* **Smart Orientation Metrics**: Sunlight indexes (hours/day), noise levels, and investment score telemetry.
+
+### 2. Personal Customer Portal
+* **Milestone Payout Tracker**: Clear installment schedulers with GST (18%) and pdfTax receipts.
+* **Verified KYC Locker**: Aadhaar and PAN verification indicators with secure file upload.
+* **Instant Digital Brochures**: Direct RERA approved booklet downloads.
+
+### 3. CRM Lead Intelligence Dashboard
+* **10-Stage Kanban Pipeline**: Track transactions from "New Lead" to "Closed/Lost".
+* **Follow-up Reminders Center**: Reminders, due date triggers, and executive task assignments.
+* **Builder & Broker Directories**: Payout terms, RERA registrations, and referrals records.
+* **Executive Boardroom Analytics**: Gross Sales Value, traffic acquisition channels, and agent rankings.
+* **AI Copilot**: Instantly generate customized WhatsApp messages, follow-up emails, and interaction logs.
+
+---
+
+## 🛠️ Technology Stack
+
+* **Frontend**: React 19, Vite (HMR), HTML5 Canvas/WebGL, CSS variables.
+* **Database**: Live Convex Cloud Backend (Real-time schema subscriptions, mutations, and query caching).
+* **PDF Exporter**: jsPDF.
+* **Analytics Rendering**: Chart.js.
+
+---
+
+## 🚀 Setup & Launching Locally
+
+### 1. Clone & Install Packages
+```bash
+git clone https://github.com/Sujaltalreja04/Shivalik.git
+cd "shivalik group"
+npm install
+```
+
+### 2. Sync Convex Cloud Database
+Make sure you have `npx convex dev` running to set up and bind your local workspace variables.
+```bash
+npx convex dev
+```
+
+### 3. Deploy Schema and Seed Mock Records
+To push functions and seed the database with rich real-estate details:
+```bash
+npx convex deploy -y
+npx convex run seed:seedDatabase
+```
+
+### 4. Boot Dev Server
+```bash
+npm run dev
+```
+Open `http://localhost:5173/` in your browser.
