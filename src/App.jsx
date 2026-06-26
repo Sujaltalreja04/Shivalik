@@ -190,15 +190,6 @@ export default function App() {
   };
   const chartInstances = useRef({});
 
-  if (properties === undefined || inventory === undefined || leads === undefined || payments === undefined) {
-    return (
-      <div className="flex align-center justify-center h-100 w-100" style={{ minHeight: '100vh', background: '#0b0f1d', color: '#D4AF37', flexDirection: 'column', gap: '15px' }}>
-        <RefreshCw className="animate-spin" size={36} style={{ animation: 'spin 1.5s linear infinite' }} />
-        <h3>Connecting to Shivalik Cloud Database...</h3>
-      </div>
-    );
-  }
-
   // Helper telemetry trigger
   const triggerTelemetry = (action, detail) => {
     if(addActivity && typeof addActivity === 'function') {
@@ -628,6 +619,16 @@ export default function App() {
       }
     }
   }, [activeTab]);
+
+  // Loading guard — placed AFTER all hooks to comply with Rules of Hooks
+  if (properties === undefined || inventory === undefined || leads === undefined || payments === undefined) {
+    return (
+      <div className="flex align-center justify-center h-100 w-100" style={{ minHeight: '100vh', background: '#0b0f1d', color: '#D4AF37', flexDirection: 'column', gap: '15px' }}>
+        <RefreshCw className="animate-spin" size={36} style={{ animation: 'spin 1.5s linear infinite' }} />
+        <h3>Connecting to Shivalik Cloud Database...</h3>
+      </div>
+    );
+  }
 
   const handleRoleChange = (roleVal) => {
     setRole(roleVal);
