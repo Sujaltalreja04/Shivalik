@@ -95,16 +95,6 @@ export default function App() {
   const addActivity = useMutation(api.activity?.addActivity);
   const leads = useQuery(api.leads?.getLeads);
   const payments = useQuery(api.crm?.getPayments);
-
-  if (properties === undefined || inventory === undefined || leads === undefined || payments === undefined) {
-    return (
-      <div className="flex align-center justify-center h-100 w-100" style={{ minHeight: '100vh', background: '#0b0f1d', color: '#D4AF37', flexDirection: 'column', gap: '15px' }}>
-        <RefreshCw className="animate-spin" size={36} style={{ animation: 'spin 1.5s linear infinite' }} />
-        <h3>Connecting to Shivalik Cloud Database...</h3>
-      </div>
-    );
-  }
-
   // Project discovery filters
   const [filterLoc, setFilterLoc] = useState("all");
   const [filterBhk, setFilterBhk] = useState("all");
@@ -199,6 +189,15 @@ export default function App() {
     salesFunnel: useRef(null)
   };
   const chartInstances = useRef({});
+
+  if (properties === undefined || inventory === undefined || leads === undefined || payments === undefined) {
+    return (
+      <div className="flex align-center justify-center h-100 w-100" style={{ minHeight: '100vh', background: '#0b0f1d', color: '#D4AF37', flexDirection: 'column', gap: '15px' }}>
+        <RefreshCw className="animate-spin" size={36} style={{ animation: 'spin 1.5s linear infinite' }} />
+        <h3>Connecting to Shivalik Cloud Database...</h3>
+      </div>
+    );
+  }
 
   // Helper telemetry trigger
   const triggerTelemetry = (action, detail) => {

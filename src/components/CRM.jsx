@@ -22,15 +22,6 @@ export default function CRM() {
   const followups = useQuery(api.crm?.getFollowups);
   const siteVisits = useQuery(api.crm?.getSiteVisits);
 
-  if (leads === undefined || payments === undefined || builders === undefined || brokers === undefined || followups === undefined) {
-    return (
-      <div className="flex align-center justify-center h-100 w-100" style={{ minHeight: '300px', color: '#D4AF37', flexDirection: 'column', gap: '10px' }}>
-        <Activity className="animate-spin" size={24} />
-        <p className="font-small">Retrieving CRM Database records...</p>
-      </div>
-    );
-  }
-
   // Convex Database Mutations
   const addLead = useMutation(api.leads?.addLead);
   const updateLeadStatus = useMutation(api.leads?.updateLeadStatus);
@@ -100,6 +91,15 @@ export default function CRM() {
   // Edit Lead Mode Local State (for profile modal fields)
   const [isEditingLeadFields, setIsEditingLeadFields] = useState(false);
   const [editableLeadFields, setEditableLeadFields] = useState({});
+
+  if (leads === undefined || payments === undefined || builders === undefined || brokers === undefined || followups === undefined) {
+    return (
+      <div className="flex align-center justify-center h-100 w-100" style={{ minHeight: '300px', color: '#D4AF37', flexDirection: 'column', gap: '10px' }}>
+        <Activity className="animate-spin" size={24} />
+        <p className="font-small">Retrieving CRM Database records...</p>
+      </div>
+    );
+  }
 
   // 10 Detailed Sales Pipeline Stages
   const pipelineStages = [
