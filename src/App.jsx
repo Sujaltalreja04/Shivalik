@@ -911,7 +911,7 @@ export default function App() {
                   <h1>Find Your Future Home with AI</h1>
                   <p>Experience India's first AI & AR-driven property discovery platform. Walk through floorplans, customize interiors, and identify premium investment potentials from the comfort of your couch.</p>
                   <div className="hero-actions-row">
-                    <button className="btn btn-gold" onClick={() => setActiveTab('township')}>Explore 3D Township</button>
+                    <button className="btn btn-gold" onClick={() => setActiveTab('3d-township')}>Explore 3D Township</button>
                     <button className="btn btn-outline" onClick={() => setActiveTab('ai-advisor')}>Talk to AI Advisor</button>
                   </div>
                 </div>
@@ -1075,7 +1075,7 @@ export default function App() {
                         </div>
                         <div className="detail-actions-stack">
                           <button className="btn btn-gold" onClick={() => { setActiveTab("ar-viewer"); setArSubTab("tabletop"); }}><Layout /> Launch Interactive AR Viewer</button>
-                          <button className="btn btn-outline" onClick={() => { setCompare1(selectedTower === 'C' ? "high-604" : "sky-301"); setActiveTab("comparison"); }}><GitCompare /> Compare in Matrix</button>
+                          <button className="btn btn-outline" onClick={() => { setCompare1(selectedTower === 'C' ? "high-604" : "sky-301"); setActiveTab("compare"); }}><GitCompare /> Compare in Matrix</button>
                         </div>
                       </div>
                     ) : selectedAmenity ? (
