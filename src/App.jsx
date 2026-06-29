@@ -1075,7 +1075,7 @@ export default function App() {
                         </div>
                         <div className="detail-actions-stack">
                           <button className="btn btn-gold" onClick={() => { setActiveTab("ar-viewer"); setArSubTab("tabletop"); }}><Layout /> Launch Interactive AR Viewer</button>
-                          <button className="btn btn-outline" onClick={() => { setCompare1(selectedTower === 'C' ? "high-604" : "sky-301"); setActiveTab("compare"); }}><GitCompare /> Compare in Matrix</button>
+                          <button className="btn btn-outline" onClick={() => { setCompare1(selectedTower === 'C' ? "high-604" : "sky-301"); setActiveTab("comparison"); }}><GitCompare /> Compare in Matrix</button>
                         </div>
                       </div>
                     ) : selectedAmenity ? (

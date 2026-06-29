@@ -1,972 +1,565 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import { Compass, RotateCw, ZoomIn, ZoomOut, Move, Eye } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Compass, RotateCw, ZoomIn, ZoomOut, Eye, Move } from 'lucide-react';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PURE CSS 3D TOWNSHIP & INTERIOR VIEWER
+// No WebGL / Three.js — 100% CSS 3D transforms, works in every browser
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ThreeDViewer({
-  mode = 'interior', // 'township' or 'interior'
-  interiorStyle = 'Modern', // 'Modern', 'Luxury', 'Scandinavian', 'Minimalist'
+  mode = 'interior',
+  interiorStyle = 'Modern',
   interiorBudget = 1000000,
-  timeOfDay = 12, // 8 to 18 (shadow clock)
+  timeOfDay = 12,
   selectedTower = null,
   onSelectTower = null,
   onSelectAmenity = null,
   highlightFloor = null,
 }) {
-  const mountRef = useRef(null);
-  const [viewMode, setViewMode] = useState('dollhouse');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const mountedRef = useRef(true); // track if component is still mounted
+  const [rotY, setRotY] = useState(mode === 'township' ? -30 : -20);
+  const [rotX, setRotX] = useState(mode === 'township' ? -25 : -18);
+  const [zoom, setZoom] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [hoveredTower, setHoveredTower] = useState(null);
+  const [tick, setTick] = useState(0);
+  const containerRef = useRef(null);
 
-  // Keep control states in refs — initialized lazily in useEffect to avoid calling THREE during render
-  const stateRef = useRef(null);
-  if (!stateRef.current) {
-    stateRef.current = {
-      viewMode: 'dollhouse',
-      style: interiorStyle,
-      time: timeOfDay,
-      selectedTower: selectedTower,
-      highlightFloor: highlightFloor,
-      keys: { w: false, a: false, s: false, d: false },
-      cameraYaw: -Math.PI / 4,
-      cameraPitch: -Math.PI / 6,
-      vrYaw: 0,
-      vrPitch: 0,
-      radius: 18,
-      vrPos: null,   // initialized inside useEffect (THREE.Vector3)
-      target: null,  // initialized inside useEffect (THREE.Vector3)
-      isDragging: false,
-      prevMouse: { x: 0, y: 0 }
-    };
-  }
-
-  // Track state updates
+  // Animate window lights blinking
   useEffect(() => {
-    stateRef.current.viewMode = viewMode;
-    stateRef.current.style = interiorStyle;
-    stateRef.current.time = timeOfDay;
-    stateRef.current.selectedTower = selectedTower;
-    stateRef.current.highlightFloor = highlightFloor;
-  }, [viewMode, interiorStyle, timeOfDay, selectedTower, highlightFloor]);
-
-  // Handle keyboard events for VR mode navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const k = e.key.toLowerCase();
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(k)) {
-        if (k === 'w' || k === 'arrowup') stateRef.current.keys.w = true;
-        if (k === 'a' || k === 'arrowleft') stateRef.current.keys.a = true;
-        if (k === 's' || k === 'arrowdown') stateRef.current.keys.s = true;
-        if (k === 'd' || k === 'arrowright') stateRef.current.keys.d = true;
-      }
-    };
-
-    const handleKeyUp = (e) => {
-      const k = e.key.toLowerCase();
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(k)) {
-        if (k === 'w' || k === 'arrowup') stateRef.current.keys.w = false;
-        if (k === 'a' || k === 'arrowleft') stateRef.current.keys.a = false;
-        if (k === 's' || k === 'arrowdown') stateRef.current.keys.s = false;
-        if (k === 'd' || k === 'arrowright') stateRef.current.keys.d = false;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
+    const id = setInterval(() => setTick(t => t + 1), 1200);
+    return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    if (!mountRef.current) return;
-
-    const container = mountRef.current;
-
-    // --- INIT FUNCTION: wrapped in try-catch to prevent production crashes ---
-    const initScene = () => {
-      try {
-        // Get actual container dimensions (fallback to safe defaults)
-        const width = container.clientWidth > 0 ? container.clientWidth : 800;
-        const height = container.clientHeight > 0 ? container.clientHeight : 500;
-
-      const scene = new THREE.Scene();
-      // Premium Slate Gradient-like Background Color
-      scene.background = new THREE.Color(0x0a0f1d);
-      scene.fog = new THREE.FogExp2(0x0a0f1d, 0.015);
-
-      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-      // Clear previous canvas and attach new one
-      container.innerHTML = '';
-      container.appendChild(renderer.domElement);
-      
-      // Make the canvas fill the container via CSS
-      renderer.domElement.style.display = 'block';
-      renderer.domElement.style.width = '100%';
-      renderer.domElement.style.height = '100%';
-
-      // Initialize THREE.Vector3 objects here (safe inside effect)
-      if (!stateRef.current.vrPos) {
-        stateRef.current.vrPos = new THREE.Vector3(0, 1.6, 5);
-      }
-      if (!stateRef.current.target) {
-        stateRef.current.target = new THREE.Vector3(0, 0, 0);
-      }
-
-      // Hide loading overlay — scene is now initializing
-      if (mountedRef.current) setLoading(false);
-
-    // --- PROCEDURAL 3D MESH GENERATORS ---
-
-    // Materials Store
-    const goldMat = new THREE.MeshStandardMaterial({
-      color: 0xd4af37,
-      roughness: 0.2,
-      metalness: 0.8,
-      emissive: 0xd4af37,
-      emissiveIntensity: 0.1
-    });
-
-    // Simple glass material (MeshPhysicalMaterial with transmission requires WebGL2 extensions - use MeshStandardMaterial for compatibility)
-    const windowGlassMat = new THREE.MeshStandardMaterial({
-      color: 0x7dd3fc,
-      transparent: true,
-      opacity: 0.25,
-      roughness: 0.05,
-      metalness: 0.95,
-    });
-
-    const glowWindowMat = new THREE.MeshStandardMaterial({
-      color: 0xffe082,
-      emissive: 0xffb300,
-      emissiveIntensity: 1.0,
-      roughness: 0.5
-    });
-
-    const darkSlateMat = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
-      roughness: 0.7,
-      metalness: 0.2
-    });
-
-    // Mesh Holders
-    const meshesGroup = new THREE.Group();
-    scene.add(meshesGroup);
-
-    // Track clickable objects for raycasting
-    const clickableObjects = [];
-
-    // Helper: Dynamic Floor material styling
-    const getFloorMaterial = (style) => {
-      switch (style) {
-        case 'Luxury': // Carrara Marble
-          return new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.1, metalness: 0.1 });
-        case 'Scandinavian': // Light Oak
-          return new THREE.MeshStandardMaterial({ color: 0xd6b38c, roughness: 0.6, metalness: 0.0 });
-        case 'Minimalist': // Microcement Screed
-          return new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.5, metalness: 0.1 });
-        case 'Modern': // Engineered Timber
-        default:
-          return new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.4, metalness: 0.0 });
-      }
-    };
-
-    const getWallMaterial = (style) => {
-      switch (style) {
-        case 'Luxury':
-          return new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.5 }); // Deep Royal Navy
-        case 'Scandinavian':
-          return new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.8 }); // Clean Chalk White
-        case 'Minimalist':
-          return new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.7 }); // Industrial Gray
-        case 'Modern':
-        default:
-          return new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 }); // Deep Charcoal Slate
-      }
-    };
-
-    // 1. POPULATE SCENE BASED ON MODE
-    if (mode === 'township') {
-      // --- TOWNSHIP MODEL ---
-      // Ground lawn
-      const grassGeo = new THREE.PlaneGeometry(35, 35);
-      const grassMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.9 });
-      const grass = new THREE.Mesh(grassGeo, grassMat);
-      grass.rotation.x = -Math.PI / 2;
-      grass.receiveShadow = true;
-      meshesGroup.add(grass);
-
-      // Central Garden
-      const gardenGeo = new THREE.CylinderGeometry(6, 6, 0.1, 32);
-      const gardenMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.8 });
-      const garden = new THREE.Mesh(gardenGeo, gardenMat);
-      garden.position.set(0, 0.05, 0);
-      meshesGroup.add(garden);
-
-      // Clubhouse Pool
-      const poolFrameGeo = new THREE.BoxGeometry(7, 0.2, 4);
-      const poolFrame = new THREE.Mesh(poolFrameGeo, darkSlateMat);
-      poolFrame.position.set(-6, 0.1, -6);
-      meshesGroup.add(poolFrame);
-
-      const poolWaterGeo = new THREE.PlaneGeometry(6.6, 3.6);
-      const poolWaterMat = new THREE.MeshStandardMaterial({
-        color: 0x0284c7,
-        roughness: 0.1,
-        metalness: 0.8,
-        emissive: 0x0e7490,
-        emissiveIntensity: 0.3
-      });
-      const poolWater = new THREE.Mesh(poolWaterGeo, poolWaterMat);
-      poolWater.rotation.x = -Math.PI / 2;
-      poolWater.position.set(-6, 0.21, -6);
-      poolWater.name = 'amenity-pool';
-      meshesGroup.add(poolWater);
-      clickableObjects.push(poolWater);
-
-      // Clubhouse Gym structure
-      const gymGeo = new THREE.BoxGeometry(6, 3, 5);
-      const gym = new THREE.Mesh(gymGeo, darkSlateMat);
-      gym.position.set(-6, 1.5, 3);
-      gym.name = 'amenity-gym';
-      gym.castShadow = true;
-      gym.receiveShadow = true;
-      meshesGroup.add(gym);
-      clickableObjects.push(gym);
-
-      // Add a gold roof strip
-      const gymRoofGeo = new THREE.BoxGeometry(6.2, 0.3, 5.2);
-      const gymRoof = new THREE.Mesh(gymRoofGeo, goldMat);
-      gymRoof.position.set(-6, 3.15, 3);
-      meshesGroup.add(gymRoof);
-
-      // Tower A mesh
-      const towerAGeo = new THREE.BoxGeometry(3.5, 12, 3.5);
-      const towerAMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
-      const towerA = new THREE.Mesh(towerAGeo, towerAMat);
-      towerA.position.set(6, 6, -5);
-      towerA.castShadow = true;
-      towerA.receiveShadow = true;
-      towerA.name = 'tower-A';
-      meshesGroup.add(towerA);
-      clickableObjects.push(towerA);
-
-      // Tower B mesh
-      const towerBGeo = new THREE.BoxGeometry(3.5, 8, 3.5);
-      const towerBMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
-      const towerB = new THREE.Mesh(towerBGeo, towerBMat);
-      towerB.position.set(2, 4, 7);
-      towerB.castShadow = true;
-      towerB.receiveShadow = true;
-      towerB.name = 'tower-B';
-      meshesGroup.add(towerB);
-      clickableObjects.push(towerB);
-
-      // Tower C mesh
-      const towerCGeo = new THREE.BoxGeometry(3.5, 15, 3.5);
-      const towerCMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
-      const towerC = new THREE.Mesh(towerCGeo, towerCMat);
-      towerC.position.set(8, 7.5, 5);
-      towerC.castShadow = true;
-      towerC.receiveShadow = true;
-      towerC.name = 'tower-C';
-      meshesGroup.add(towerC);
-      clickableObjects.push(towerC);
-
-      // Helper to construct tower glowing windows
-      const buildWindows = (parentTower, floorsCount, towerLetter) => {
-        const offset = 0.8;
-        const windowGeo = new THREE.BoxGeometry(0.3, 0.4, 0.4);
-        for (let f = 1; f <= floorsCount; f++) {
-          for (let side = 0; side < 4; side++) {
-            const wMesh = new THREE.Mesh(windowGeo, glowWindowMat);
-            wMesh.name = `window-${towerLetter}-floor-${f}`;
-            // Position windows around building sides
-            const yPos = (f * (parentTower.geometry.parameters.height / (floorsCount + 1)));
-            const halfW = parentTower.geometry.parameters.width / 2;
-            if (side === 0) wMesh.position.set(parentTower.position.x + halfW + 0.02, yPos, parentTower.position.z);
-            if (side === 1) wMesh.position.set(parentTower.position.x - halfW - 0.02, yPos, parentTower.position.z);
-            if (side === 2) wMesh.position.set(parentTower.position.x, yPos, parentTower.position.z + halfW + 0.02);
-            if (side === 3) wMesh.position.set(parentTower.position.x, yPos, parentTower.position.z - halfW - 0.02);
-
-            if (side >= 2) wMesh.rotation.y = Math.PI / 2;
-            meshesGroup.add(wMesh);
-          }
-        }
-      };
-
-      buildWindows(towerA, 10, 'A');
-      buildWindows(towerB, 6, 'B');
-      buildWindows(towerC, 14, 'C');
-
-      // Add simple trees (Cone geometries on cylinders)
-      const addTree = (x, z) => {
-        const trunkGeo = new THREE.CylinderGeometry(0.15, 0.2, 1, 8);
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033 });
-        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-        trunk.position.set(x, 0.5, z);
-        trunk.castShadow = true;
-        meshesGroup.add(trunk);
-
-        const leavesGeo = new THREE.ConeGeometry(0.8, 1.8, 8);
-        const leavesMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8 });
-        const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-        leaves.position.set(x, 1.8, z);
-        leaves.castShadow = true;
-        meshesGroup.add(leaves);
-      };
-
-      addTree(-3, -2);
-      addTree(-4, 0);
-      addTree(3, -1);
-      addTree(4, 2);
-      addTree(-1, 5);
-      addTree(-8, -2);
-
-    } else {
-      // --- APARTMENT FLAT MODEL ---
-      // Floor Plan Plane
-      const floorGeo = new THREE.PlaneGeometry(12, 12);
-      const floorMesh = new THREE.Mesh(floorGeo, getFloorMaterial(interiorStyle));
-      floorMesh.rotation.x = -Math.PI / 2;
-      floorMesh.receiveShadow = true;
-      meshesGroup.add(floorMesh);
-
-      // Generate boundary & partition walls (procedural boxes)
-      const wallMat = getWallMaterial(interiorStyle);
-
-      const addWall = (x, z, w, d, h = 3, name = '') => {
-        const wallGeo = new THREE.BoxGeometry(w, h, d);
-        const wall = new THREE.Mesh(wallGeo, wallMat);
-        wall.position.set(x, h / 2, z);
-        wall.castShadow = true;
-        wall.receiveShadow = true;
-        wall.name = name;
-        meshesGroup.add(wall);
-        return wall;
-      };
-
-      // External perimeter walls
-      addWall(0, -6, 12, 0.3); // Back
-      addWall(0, 6, 12, 0.3);  // Front
-      addWall(-6, 0, 0.3, 12); // Left
-      addWall(6, 0, 0.3, 12);  // Right
-
-      // Interior partition walls (splitting Master Bed, Living Room, Kitchen)
-      addWall(0, 1, 0.2, 10, 3); // Middle dividing line Y
-      addWall(3, -2, 6, 0.2, 3); // Divider for Kitchen/Bed
-
-      // Big Window Frame on Back Wall looking out
-      const windowOuterGeo = new THREE.BoxGeometry(4, 2, 0.4);
-      const windowOuter = new THREE.Mesh(windowOuterGeo, goldMat);
-      windowOuter.position.set(0, 1.5, -5.9);
-      meshesGroup.add(windowOuter);
-
-      const windowPaneGeo = new THREE.BoxGeometry(3.8, 1.8, 0.1);
-      const windowPane = new THREE.Mesh(windowPaneGeo, windowGlassMat);
-      windowPane.position.set(0, 1.5, -5.9);
-      meshesGroup.add(windowPane);
-
-      // Procedural Luxury Sofa Model (Sofa Group)
-      const sofaGroup = new THREE.Group();
-      sofaGroup.position.set(-3, 0, -2);
-      sofaGroup.rotation.y = Math.PI / 2;
-
-      const sofaColor = interiorStyle === 'Luxury' ? 0xb91c1c : interiorStyle === 'Minimalist' ? 0x64748b : 0x1e3a8a;
-      const cushionMat = new THREE.MeshStandardMaterial({ color: sofaColor, roughness: 0.6 });
-
-      // Base
-      const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.4, 1.4), cushionMat);
-      baseMesh.position.set(0, 0.2, 0);
-      baseMesh.castShadow = true;
-      sofaGroup.add(baseMesh);
-
-      // Backrest
-      const backMesh = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.8, 0.3), cushionMat);
-      backMesh.position.set(0, 0.6, -0.55);
-      backMesh.castShadow = true;
-      sofaGroup.add(backMesh);
-
-      // Armrests
-      const armL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 1.4), cushionMat);
-      armL.position.set(-1.75, 0.4, 0);
-      armL.castShadow = true;
-      sofaGroup.add(armL);
-
-      const armR = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 1.4), cushionMat);
-      armR.position.set(1.75, 0.4, 0);
-      armR.castShadow = true;
-      sofaGroup.add(armR);
-
-      meshesGroup.add(sofaGroup);
-
-      // Coffee Table (Glass top + wood legs)
-      const tableGroup = new THREE.Group();
-      tableGroup.position.set(-3, 0, 1);
-
-      const legGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.5);
-      const legMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 });
-      for (let i = 0; i < 4; i++) {
-        const leg = new THREE.Mesh(legGeo, legMat);
-        const lx = i < 2 ? -0.8 : 0.8;
-        const lz = i % 2 === 0 ? -0.5 : 0.5;
-        leg.position.set(lx, 0.25, lz);
-        leg.castShadow = true;
-        tableGroup.add(leg);
-      }
-
-      const topMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 0.08, 1.2), windowGlassMat);
-      topMesh.position.set(0, 0.5, 0);
-      topMesh.castShadow = true;
-      tableGroup.add(topMesh);
-
-      meshesGroup.add(tableGroup);
-
-      // Luxury Master Bed Model (Master Bed Group)
-      const bedGroup = new THREE.Group();
-      bedGroup.position.set(3, 0, -3.5);
-      bedGroup.rotation.y = -Math.PI;
-
-      const woodFrameMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.6 });
-      const sheetsMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.9 });
-      const pillowsMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.8 });
-
-      // Bed Frame
-      const bedFrame = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.4, 4), woodFrameMat);
-      bedFrame.position.set(0, 0.2, 0);
-      bedFrame.castShadow = true;
-      bedGroup.add(bedFrame);
-
-      // Bed Mattress/Sheets
-      const mattress = new THREE.Mesh(new THREE.BoxGeometry(3, 0.4, 3.8), sheetsMat);
-      mattress.position.set(0, 0.5, 0.1);
-      mattress.castShadow = true;
-      bedGroup.add(mattress);
-
-      // Headboard
-      const headboard = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.2, 0.2), woodFrameMat);
-      headboard.position.set(0, 0.8, -1.9);
-      headboard.castShadow = true;
-      bedGroup.add(headboard);
-
-      // Two Pillows
-      const pillow1 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.15, 0.7), pillowsMat);
-      pillow1.position.set(-0.65, 0.75, -1.3);
-      bedGroup.add(pillow1);
-
-      const pillow2 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.15, 0.7), pillowsMat);
-      pillow2.position.set(0.65, 0.75, -1.3);
-      bedGroup.add(pillow2);
-
-      meshesGroup.add(bedGroup);
-
-      // Standing Floor Lamp with PointLight source
-      const lampGroup = new THREE.Group();
-      lampGroup.position.set(5, 0, -1);
-
-      const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.05), goldMat);
-      lampBase.position.set(0, 0.025, 0);
-      lampGroup.add(lampBase);
-
-      const lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.8), goldMat);
-      lampPole.position.set(0, 0.9, 0);
-      lampPole.castShadow = true;
-      lampGroup.add(lampPole);
-
-      const shadeGeo = new THREE.CylinderGeometry(0.3, 0.4, 0.5, 16);
-      const shadeMat = new THREE.MeshStandardMaterial({
-        color: 0xfffaf0,
-        emissive: 0xffffe0,
-        emissiveIntensity: 0.2,
-        roughness: 0.8
-      });
-      const lampShade = new THREE.Mesh(shadeGeo, shadeMat);
-      lampShade.position.set(0, 1.8, 0);
-      lampGroup.add(lampShade);
-
-      // Light point that glows in dark/night times
-      const lampLight = new THREE.PointLight(0xffb300, 1.5, 8);
-      lampLight.position.set(0, 1.8, 0);
-      lampLight.castShadow = true;
-      lampLight.shadow.bias = -0.002;
-      lampGroup.add(lampLight);
-
-      meshesGroup.add(lampGroup);
-
-      // Indoor Green Plant in Gold Pot
-      const plantGroup = new THREE.Group();
-      plantGroup.position.set(-5, 0, -5);
-
-      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.25, 0.6), goldMat);
-      pot.position.set(0, 0.3, 0);
-      pot.castShadow = true;
-      plantGroup.add(pot);
-
-      const soil = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.05), new THREE.MeshStandardMaterial({ color: 0x3d2314 }));
-      soil.position.set(0, 0.58, 0);
-      plantGroup.add(soil);
-
-      const plantGeo = new THREE.SphereGeometry(0.5, 8, 8);
-      const plantMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.8 });
-      for (let i = 0; i < 4; i++) {
-        const leaves = new THREE.Mesh(plantGeo, plantMat);
-        leaves.scale.set(0.6, 1.5, 0.6);
-        leaves.rotation.x = 0.3;
-        leaves.rotation.z = i * Math.PI / 2;
-        leaves.position.set(0, 1.0, 0);
-        leaves.castShadow = true;
-        plantGroup.add(leaves);
-      }
-
-      meshesGroup.add(plantGroup);
-    }
-
-    // --- LIGHTS & ATMOSPHERE ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-    scene.add(ambientLight);
-
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    sunLight.position.set(10, 15, 10);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 1024;
-    sunLight.shadow.mapSize.height = 1024;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 40;
-    const d = 15;
-    sunLight.shadow.camera.left = -d;
-    sunLight.shadow.camera.right = d;
-    sunLight.shadow.camera.top = d;
-    sunLight.shadow.camera.bottom = -d;
-    scene.add(sunLight);
-
-    // Warm evening/indoor ambient fallback light
-    const floorLight = new THREE.PointLight(0xffffff, 0.1, 20);
-    floorLight.position.set(0, 8, 0);
-    scene.add(floorLight);
-
-    setLoading(false);
-
-    // --- RAYCASTING (Clicks on objects) ---
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    const handleCanvasClick = (event) => {
-      // Calculate mouse position in normalized device coordinates
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(clickableObjects, true);
-
-      if (intersects.length > 0) {
-        let rootObj = intersects[0].object;
-        while (rootObj.parent && rootObj.parent !== meshesGroup) {
-          rootObj = rootObj.parent;
-        }
-
-        if (rootObj.name.startsWith('tower-')) {
-          const tLetter = rootObj.name.replace('tower-', '');
-          if (onSelectTower) onSelectTower(tLetter);
-        } else if (rootObj.name.startsWith('amenity-')) {
-          const aName = rootObj.name === 'amenity-pool' ? 'Clubhouse Pool' : 'Clubhouse Gym';
-          if (onSelectAmenity) onSelectAmenity(aName);
-        }
-      }
-    };
-
-    renderer.domElement.addEventListener('click', handleCanvasClick);
-
-    // --- CUSTOM ORBIT & VR MATH / CONTROLS ---
-
-    const handleMouseDown = (e) => {
-      stateRef.current.isDragging = true;
-      stateRef.current.prevMouse.x = e.clientX;
-      stateRef.current.prevMouse.y = e.clientY;
-    };
-
-    const handleMouseMove = (e) => {
-      if (!stateRef.current.isDragging) return;
-      const deltaX = e.clientX - stateRef.current.prevMouse.x;
-      const deltaY = e.clientY - stateRef.current.prevMouse.y;
-      stateRef.current.prevMouse.x = e.clientX;
-      stateRef.current.prevMouse.y = e.clientY;
-
-      if (stateRef.current.viewMode === 'dollhouse') {
-        // Rotate dollhouse camera angles
-        stateRef.current.cameraYaw -= deltaX * 0.005;
-        stateRef.current.cameraPitch = Math.max(
-          -Math.PI / 2.1,
-          Math.min(-Math.PI / 12, stateRef.current.cameraPitch - deltaY * 0.005)
-        );
-      } else {
-        // VR look horizontal/vertical rotation
-        stateRef.current.vrYaw -= deltaX * 0.003;
-        stateRef.current.vrPitch = Math.max(
-          -Math.PI / 3,
-          Math.min(Math.PI / 3, stateRef.current.vrPitch - deltaY * 0.003)
-        );
-      }
-    };
-
-    const handleMouseUp = () => {
-      stateRef.current.isDragging = false;
-    };
-
-    const handleWheel = (e) => {
-      if (stateRef.current.viewMode === 'dollhouse') {
-        stateRef.current.radius = Math.max(8, Math.min(30, stateRef.current.radius + e.deltaY * 0.01));
-      }
-    };
-
-    renderer.domElement.addEventListener('mousedown', handleMouseDown);
-    renderer.domElement.addEventListener('mousemove', handleMouseMove);
-    renderer.domElement.addEventListener('mouseup', handleMouseUp);
-    renderer.domElement.addEventListener('mouseleave', handleMouseUp);
-    renderer.domElement.addEventListener('wheel', handleWheel, { passive: true });
-
-    // --- ANIMATION / RENDER LOOP ---
-    let animFrameId;
-    let clock = new THREE.Clock();
-
-    const animate = () => {
-      animFrameId = requestAnimationFrame(animate);
-
-      const delta = clock.getDelta();
-      const st = stateRef.current;
-
-      // 1. Dynamic Lighting (Day/Night Shadow Clock)
-      // Map hours 8 -> 18 to angles/intensities
-      const hourRatio = (st.time - 8) / 10; // 0 to 1
-      const sunAngle = Math.PI * hourRatio;
-      sunLight.position.set(
-        Math.cos(sunAngle) * 15,
-        Math.sin(sunAngle) * 15 + 2,
-        Math.sin(sunAngle) * 5
-      );
-
-      // Night lighting transition (sunset after 16, night starts 17)
-      if (st.time > 16 || st.time < 9) {
-        sunLight.intensity = Math.max(0.05, 1.0 - (st.time - 16) * 0.4);
-        ambientLight.color.setHex(0x1e1e38);
-        ambientLight.intensity = 0.25;
-        // Turn on/off window and lamp glows
-        glowWindowMat.emissiveIntensity = 1.0;
-        glowWindowMat.color.setHex(0xffe082);
-        // Turn on points lights inside flat
-        scene.traverse((node) => {
-          if (node instanceof THREE.PointLight) {
-            node.intensity = 2.0;
-          }
-        });
-      } else {
-        sunLight.intensity = 1.0;
-        ambientLight.color.setHex(0xffffff);
-        ambientLight.intensity = 0.45;
-        glowWindowMat.emissiveIntensity = 0.1;
-        glowWindowMat.color.setHex(0x334155);
-        scene.traverse((node) => {
-          if (node instanceof THREE.PointLight) {
-            node.intensity = 0.2;
-          }
-        });
-      }
-
-      // Dynamic flooring & wall customization in Flat mode
-      if (mode === 'interior') {
-        scene.traverse((node) => {
-          if (node instanceof THREE.Mesh) {
-            if (node.geometry instanceof THREE.PlaneGeometry && node.position.y === 0) {
-              node.material = getFloorMaterial(st.style);
-            }
-            if (node.name && node.name.startsWith('wall-')) {
-              node.material = getWallMaterial(st.style);
-            }
-          }
-        });
-      }
-
-      // Dynamic tower selections highlighted in Gold
-      if (mode === 'township') {
-        scene.traverse((node) => {
-          if (node instanceof THREE.Mesh && node.name && node.name.startsWith('tower-')) {
-            const letter = node.name.replace('tower-', '');
-            if (st.selectedTower === letter) {
-              node.material.color.setHex(0xd4af37);
-              node.material.emissiveIntensity = 0.3;
-            } else {
-              node.material.color.setHex(0x334155);
-              node.material.emissiveIntensity = 0.05;
-            }
-          }
-          // Highlight individual vacancy floors if highlightFloor matches
-          if (node instanceof THREE.Mesh && node.name && node.name.startsWith('window-')) {
-            const matches = node.name.match(/window-([A-C])-floor-(\d+)/);
-            if (matches) {
-              const [_, tL, flNum] = matches;
-              if (st.highlightFloor && st.highlightFloor.includes(`Tower ${tL}`) && st.highlightFloor.includes(`Floor ${flNum}`)) {
-                node.material.color.setHex(0x10b981); // Bright vacancy green
-                node.material.emissive.setHex(0x10b981);
-                node.material.emissiveIntensity = 2.0;
-              } else {
-                // Reset standard glow
-                node.material.color.setHex(0xffe082);
-                node.material.emissive.setHex(0xffb300);
-                node.material.emissiveIntensity = st.time > 16 || st.time < 9 ? 1.0 : 0.1;
-              }
-            }
-          }
-        });
-
-        // Animate clubhouse pool ripples subtly
-        const pool = scene.getObjectByName('amenity-pool');
-        if (pool) {
-          pool.material.emissiveIntensity = 0.3 + Math.sin(clock.getElapsedTime() * 2) * 0.15;
-        }
-      }
-
-      // 2. Camera Updates based on Navigation Mode
-      if (st.viewMode === 'dollhouse') {
-        // Calculate orbit position
-        const radius = st.radius;
-        const yaw = st.cameraYaw;
-        const pitch = st.cameraPitch;
-
-        camera.position.x = st.target.x + radius * Math.cos(pitch) * Math.sin(yaw);
-        camera.position.y = st.target.y + radius * Math.sin(-pitch);
-        camera.position.z = st.target.z + radius * Math.cos(pitch) * Math.cos(yaw);
-
-        camera.lookAt(st.target);
-      } else {
-        // VR Mode walkthrough navigation
-        const speed = 4.0; // Units per second
-        const moveDist = speed * delta;
-        const yaw = st.vrYaw;
-
-        // WASD Movement vector relative to camera direction along horizontal plane
-        const moveVec = new THREE.Vector3();
-        if (st.keys.w) {
-          moveVec.z -= moveDist * Math.cos(yaw);
-          moveVec.x -= moveDist * Math.sin(yaw);
-        }
-        if (st.keys.s) {
-          moveVec.z += moveDist * Math.cos(yaw);
-          moveVec.x += moveDist * Math.sin(yaw);
-        }
-        if (st.keys.a) {
-          moveVec.x -= moveDist * Math.cos(yaw);
-          moveVec.z += moveDist * Math.sin(yaw);
-        }
-        if (st.keys.d) {
-          moveVec.x += moveDist * Math.cos(yaw);
-          moveVec.z -= moveDist * Math.sin(yaw);
-        }
-
-        st.vrPos.add(moveVec);
-        // Collisions: Restrict bounds inside the apartment floor boundary (-5.5 to 5.5)
-        st.vrPos.x = Math.max(-5.5, Math.min(5.5, st.vrPos.x));
-        st.vrPos.z = Math.max(-5.5, Math.min(5.5, st.vrPos.z));
-        st.vrPos.y = 1.6; // Keep head height constant
-
-        camera.position.copy(st.vrPos);
-
-        // Calculate direction vector camera looks at
-        const pitch = st.vrPitch;
-        const lookTarget = new THREE.Vector3(
-          camera.position.x - Math.sin(yaw) * Math.cos(pitch),
-          camera.position.y + Math.sin(pitch),
-          camera.position.z - Math.cos(yaw) * Math.cos(pitch)
-        );
-        camera.lookAt(lookTarget);
-      }
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    // Handle resize: update camera aspect and renderer to match container
-    const handleResize = () => {
-      if (!container) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      if (w === 0 || h === 0) return;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Also observe container size changes (tab switch / panel resize)
-    let resizeObs;
-    if (window.ResizeObserver) {
-      resizeObs = new ResizeObserver(handleResize);
-      resizeObs.observe(container);
-    }
-
-    return () => {
-      cancelAnimationFrame(animFrameId);
-      window.removeEventListener('resize', handleResize);
-      if (resizeObs) resizeObs.disconnect();
-      renderer.domElement.removeEventListener('click', handleCanvasClick);
-      renderer.domElement.removeEventListener('mousedown', handleMouseDown);
-      renderer.domElement.removeEventListener('mousemove', handleMouseMove);
-      renderer.domElement.removeEventListener('mouseup', handleMouseUp);
-      renderer.domElement.removeEventListener('mouseleave', handleMouseUp);
-      renderer.domElement.removeEventListener('wheel', handleWheel);
-      renderer.dispose();
-      if (container) container.innerHTML = '';
-    };
-      } catch (err) {
-        // Catch any WebGL / Three.js error to prevent crashing the entire app
-        console.error('[ThreeDViewer] WebGL initialization failed:', err);
-        if (mountedRef.current) {
-          setLoading(false);
-          setError(err?.message || 'WebGL initialization failed');
-        }
-        return () => {};
-      }
-    }; // end initScene
-
-    // Use ResizeObserver to call initScene once the container has real dimensions.
-    // This prevents the black screen caused by initializing Three.js before layout paints.
-    let cleanupFn = null;
-    let initObs;
-
-    if (container.clientWidth > 0 && container.clientHeight > 0) {
-      // Container already has dimensions, init immediately
-      cleanupFn = initScene();
-    } else {
-      // Wait for first real layout paint
-      if (window.ResizeObserver) {
-        initObs = new ResizeObserver(() => {
-          if (container.clientWidth > 0 && container.clientHeight > 0) {
-            if (initObs) initObs.disconnect();
-            cleanupFn = initScene();
-          }
-        });
-        initObs.observe(container);
-      } else {
-        // Fallback: small delay for layout
-        const t = setTimeout(() => { cleanupFn = initScene(); }, 150);
-        return () => { clearTimeout(t); mountedRef.current = false; };
-      }
-    }
-
-    return () => {
-      mountedRef.current = false;
-      if (initObs) initObs.disconnect();
-      if (cleanupFn) cleanupFn();
-    };
-  }, [mode]);
-
-  // Orbit control shortcuts helper
-  const adjustOrbit = (action) => {
-    const st = stateRef.current;
-    if (action === 'zoomIn') st.radius = Math.max(8, st.radius - 2);
-    if (action === 'zoomOut') st.radius = Math.min(30, st.radius + 2);
-    if (action === 'rotateLeft') st.cameraYaw -= Math.PI / 6;
-    if (action === 'rotateRight') st.cameraYaw += Math.PI / 6;
-    if (action === 'reset') {
-      st.radius = 18;
-      st.cameraYaw = -Math.PI / 4;
-      st.cameraPitch = -Math.PI / 6;
-      st.vrPos.set(0, 1.6, 5);
-      st.vrYaw = 0;
-      st.vrPitch = 0;
-    }
+  const isNight = timeOfDay > 17 || timeOfDay < 7;
+
+  // ── Mouse drag to orbit ───────────────────────────────────────────────────
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    setDragStart({ x: e.clientX, y: e.clientY });
+    setRotY(r => r + dx * 0.4);
+    setRotX(r => Math.min(5, Math.max(-50, r - dy * 0.3)));
+  };
+  const handleMouseUp = () => setIsDragging(false);
+
+  // Touch drag support
+  const lastTouch = useRef(null);
+  const handleTouchStart = (e) => {
+    lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleTouchMove = (e) => {
+    if (!lastTouch.current) return;
+    const dx = e.touches[0].clientX - lastTouch.current.x;
+    const dy = e.touches[0].clientY - lastTouch.current.y;
+    lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    setRotY(r => r + dx * 0.4);
+    setRotX(r => Math.min(5, Math.max(-50, r - dy * 0.3)));
+  };
+  const handleTouchEnd = () => { lastTouch.current = null; };
+
+  const sceneStyle = {
+    width: '100%',
+    height: '100%',
+    minHeight: '460px',
+    position: 'relative',
+    background: isNight
+      ? 'linear-gradient(180deg, #020510 0%, #0a0f2a 60%, #0d1525 100%)'
+      : `linear-gradient(180deg, #0f2248 0%, #1a3a6e ${Math.max(0, (timeOfDay - 6) * 8)}%, #0b1a35 100%)`,
+    overflow: 'hidden',
+    cursor: isDragging ? 'grabbing' : 'grab',
+    userSelect: 'none',
+  };
+
+  const perspectiveStyle = {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    perspective: '900px',
+    perspectiveOrigin: '50% 40%',
+  };
+
+  const sceneRotStyle = {
+    transformStyle: 'preserve-3d',
+    transform: `rotateX(${rotX}deg) rotateY(${rotY}deg) scale(${zoom})`,
+    transition: isDragging ? 'none' : 'transform 0.15s ease',
+    position: 'relative',
+    width: mode === 'township' ? '480px' : '360px',
+    height: mode === 'township' ? '480px' : '360px',
   };
 
   return (
-    <div className="three-d-viewer-root relative overflow-hidden" style={{ width: '100%', height: '100%', minHeight: '420px', background: '#0a0f1d' }}>
-      {/* 3D Render Port — must have explicit height so Three.js gets real dimensions */}
-      <div ref={mountRef} style={{ width: '100%', height: '100%', minHeight: '420px', display: 'block' }} className="cursor-grab active:cursor-grabbing" />
-
-      {/* Error Fallback — shown if WebGL fails */}
-      {error && (
-        <div style={{
-          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', background: '#0a0f1d',
-          color: '#94A3B8', gap: '16px', padding: '32px', textAlign: 'center', zIndex: 30
-        }}>
-          <div style={{ fontSize: '48px' }}>🏗️</div>
-          <div style={{ color: '#D4AF37', fontSize: '18px', fontWeight: 700 }}>3D Engine Unavailable</div>
-          <div style={{ fontSize: '13px', maxWidth: '320px', lineHeight: 1.6 }}>
-            Your browser or device does not support WebGL 3D rendering. 
-            Please try Chrome or Edge for the full 3D experience.
-          </div>
-          <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px' }}>
-            Technical detail: {error}
-          </div>
-        </div>
-      )}
-
-      {/* Loading Overlay */}
-      {loading && !error && (
-        <div style={{
-          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', background: 'rgba(10,15,29,0.85)', zIndex: 20
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px', height: '40px', border: '3px solid #D4AF37',
-              borderTopColor: 'transparent', borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
+    <div
+      style={sceneStyle}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      ref={containerRef}
+    >
+      {/* Stars (night only) */}
+      {isNight && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          {[...Array(40)].map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              width: i % 3 === 0 ? '2px' : '1px',
+              height: i % 3 === 0 ? '2px' : '1px',
+              borderRadius: '50%',
+              background: 'white',
+              opacity: 0.4 + (i % 5) * 0.12,
+              top: `${(i * 37 + 11) % 70}%`,
+              left: `${(i * 53 + 7) % 100}%`,
+              animation: `twinkle ${1.5 + (i % 4) * 0.5}s ease-in-out infinite alternate`,
             }} />
-            <span style={{ color: '#D4AF37', fontSize: '13px', fontWeight: 600 }}>Initializing 3D Engine...</span>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Control HUD Panel */}
-      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-none z-10">
-        
-        {/* Left side: View Mode Toggle */}
-        <div className="flex gap-2 pointer-events-auto">
-          <button
-            className={`btn btn-small btn-hud ${viewMode === 'dollhouse' ? 'btn-hud-active' : 'btn-hud-outline'}`}
-            onClick={() => setViewMode('dollhouse')}
-          >
-            <Compass size={14} /> Dollhouse View
-          </button>
-          {mode === 'interior' && (
-            <button
-              className={`btn btn-small btn-hud ${viewMode === 'vr' ? 'btn-hud-active' : 'btn-hud-outline'}`}
-              onClick={() => setViewMode('vr')}
-            >
-              <Eye size={14} /> First Person VR
-            </button>
-          )}
-        </div>
+      {/* Sun / Moon */}
+      {!isNight && (
+        <div style={{
+          position: 'absolute',
+          top: `${Math.max(8, 40 - timeOfDay * 2)}%`,
+          left: `${20 + timeOfDay * 4}%`,
+          width: '48px', height: '48px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, #FFF8E1, #FFD54F)',
+          boxShadow: '0 0 40px 15px rgba(255,213,79,0.35)',
+          pointerEvents: 'none',
+        }} />
+      )}
 
-        {/* Right side: Camera adjustment gizmos */}
-        <div className="flex gap-1 pointer-events-auto">
-          {viewMode === 'dollhouse' ? (
-            <>
-              <button className="gizmo-btn-square" onClick={() => adjustOrbit('zoomIn')} title="Zoom In"><ZoomIn size={14} /></button>
-              <button className="gizmo-btn-square" onClick={() => adjustOrbit('zoomOut')} title="Zoom Out"><ZoomOut size={14} /></button>
-              <button className="gizmo-btn-square" onClick={() => adjustOrbit('rotateLeft')} title="Rotate Left"><RotateCw size={14} className="scale-x-[-1]" /></button>
-              <button className="gizmo-btn-square" onClick={() => adjustOrbit('rotateRight')} title="Rotate Right"><RotateCw size={14} /></button>
-            </>
+      {/* 3D Scene */}
+      <div style={perspectiveStyle}>
+        <div style={sceneRotStyle}>
+          {mode === 'township' ? (
+            <TownshipScene
+              selectedTower={selectedTower}
+              onSelectTower={onSelectTower}
+              onSelectAmenity={onSelectAmenity}
+              hoveredTower={hoveredTower}
+              setHoveredTower={setHoveredTower}
+              isNight={isNight}
+              tick={tick}
+              highlightFloor={highlightFloor}
+            />
           ) : (
-            <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700/50 backdrop-blur-md px-3 py-1.5 rounded-lg text-slate-300 font-medium text-xs">
-              <Move size={12} className="text-amber-400" />
-              <span>Use <b>W A S D</b> or <b>Arrows</b> to walk inside the rooms. Drag mouse to look around.</span>
-            </div>
+            <InteriorScene
+              style={interiorStyle}
+              isNight={isNight}
+              tick={tick}
+            />
           )}
-          <button className="gizmo-btn-square bg-slate-800 text-slate-400 hover:text-amber-400" onClick={() => adjustOrbit('reset')} title="Reset Camera">Reset</button>
         </div>
-
       </div>
+
+      {/* HUD Controls */}
+      <div style={{
+        position: 'absolute', bottom: '16px', left: '16px', right: '16px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+        pointerEvents: 'none', zIndex: 10,
+      }}>
+        <div style={{ display: 'flex', gap: '8px', pointerEvents: 'auto' }}>
+          <HudBtn onClick={() => setRotY(r => r - 20)} title="Rotate Left">
+            <RotateCw size={14} style={{ transform: 'scaleX(-1)' }} />
+          </HudBtn>
+          <HudBtn onClick={() => setRotY(r => r + 20)} title="Rotate Right">
+            <RotateCw size={14} />
+          </HudBtn>
+          <HudBtn onClick={() => { setRotY(-30); setRotX(-25); setZoom(1); }} title="Reset">
+            <Compass size={14} />
+          </HudBtn>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', pointerEvents: 'auto' }}>
+          <HudBtn onClick={() => setZoom(z => Math.min(2, z + 0.15))} title="Zoom In">
+            <ZoomIn size={14} />
+          </HudBtn>
+          <HudBtn onClick={() => setZoom(z => Math.max(0.5, z - 0.15))} title="Zoom Out">
+            <ZoomOut size={14} />
+          </HudBtn>
+        </div>
+      </div>
+
+      {/* Drag hint */}
+      <div style={{
+        position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)',
+        background: 'rgba(10,15,29,0.7)', border: '1px solid rgba(212,175,55,0.2)',
+        borderRadius: '20px', padding: '4px 14px',
+        color: '#94A3B8', fontSize: '11px', pointerEvents: 'none',
+        backdropFilter: 'blur(8px)',
+      }}>
+        <Move size={11} style={{ display: 'inline', marginRight: '5px', verticalAlign: 'middle' }} />
+        Drag to orbit · Scroll to zoom
+      </div>
+
+      <style>{`
+        @keyframes twinkle { from { opacity: 0.2; } to { opacity: 0.9; } }
+        @keyframes windowPulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+        @keyframes poolRipple { 0%,100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.02); } }
+      `}</style>
     </div>
   );
+}
+
+// ─── HUD Button ───────────────────────────────────────────────────────────────
+function HudBtn({ onClick, title, children }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      width: '32px', height: '32px', borderRadius: '8px',
+      background: 'rgba(10,15,29,0.75)', border: '1px solid rgba(212,175,55,0.25)',
+      color: '#D4AF37', cursor: 'pointer', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      backdropFilter: 'blur(8px)', transition: 'all 0.15s',
+    }}>{children}</button>
+  );
+}
+
+// ─── TOWNSHIP SCENE ───────────────────────────────────────────────────────────
+function TownshipScene({ selectedTower, onSelectTower, onSelectAmenity, hoveredTower, setHoveredTower, isNight, tick, highlightFloor }) {
+  const gold = '#D4AF37';
+
+  const buildingDef = (id, label, h, x, z, w = 60, d = 60, floors = 12) => ({
+    id, label, h, x, z, w, d, floors,
+    isSelected: selectedTower === id,
+    isHovered: hoveredTower === id,
+  });
+
+  const towers = [
+    buildingDef('A', 'Tower A', 200, -130, -80, 55, 55, 12),
+    buildingDef('B', 'Tower B', 150, 30, -100, 50, 50, 9),
+    buildingDef('C', 'Tower C', 240, 120, 40, 60, 60, 14),
+  ];
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d' }}>
+
+      {/* Ground plane */}
+      <Box
+        w={500} h={8} d={500}
+        x={0} y={0} z={0}
+        color="linear-gradient(135deg, #0d2010, #0a1a0c)"
+        shadowColor="#0a1a0c"
+      />
+
+      {/* Roads */}
+      <Box w={500} h={2} d={22} x={0} y={4} z={0} color="#1a1a1a" shadowColor="#111" />
+      <Box w={22} h={2} d={500} x={0} y={4} z={0} color="#1a1a1a" shadowColor="#111" />
+
+      {/* Central garden */}
+      <Box w={120} h={4} d={120} x={0} y={4} z={0} color="linear-gradient(135deg,#15532d,#166534)" shadowColor="#0f3d1f" style={{ borderRadius: '50%' }} />
+      {/* Fountain */}
+      <Box w={20} h={12} d={20} x={0} y={8} z={0} color="#1e3a5f" shadowColor="#122640" />
+
+      {/* Swimming Pool */}
+      <Box w={90} h={4} d={60} x={-170} y={4} z={-100} color="#1e3a5f" shadowColor="#122640" />
+      <div
+        onClick={() => onSelectAmenity?.('Clubhouse Pool')}
+        style={{
+          position: 'absolute',
+          width: '84px', height: '54px',
+          background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+          borderRadius: '4px',
+          boxShadow: '0 0 20px rgba(2,132,199,0.5)',
+          transform: `translate3d(${-170 - 42}px, -10px, ${-100 - 27}px) rotateX(90deg)`,
+          cursor: 'pointer',
+          animation: 'poolRipple 3s ease-in-out infinite',
+          transformStyle: 'preserve-3d',
+        }}
+      />
+
+      {/* Clubhouse Gym */}
+      <Box w={80} h={40} d={70} x={-165} y={24} z={40} color="#1E293B" shadowColor="#0f172a"
+        label="GYM" labelColor="#D4AF37"
+        onClick={() => onSelectAmenity?.('Clubhouse Gym')} hoverable
+      />
+
+      {/* Trees */}
+      {[[-60,-150],[-90,-120],[60,-140],[150,-60],[180,100],[-50,140],[-160,80],[100,-160]].map(([tx,tz],i) => (
+        <Tree key={i} x={tx} z={tz} h={30 + (i%3)*15} isNight={isNight} />
+      ))}
+
+      {/* Towers */}
+      {towers.map(t => (
+        <Tower
+          key={t.id}
+          {...t}
+          gold={gold}
+          isNight={isNight}
+          tick={tick}
+          onClick={() => onSelectTower?.(t.id)}
+          onHover={() => setHoveredTower(t.id)}
+          onLeave={() => setHoveredTower(null)}
+        />
+      ))}
+
+      {/* Labels floating above selected towers */}
+      {towers.filter(t => t.isSelected).map(t => (
+        <div key={t.id + '-label'} style={{
+          position: 'absolute',
+          transform: `translate3d(${t.x - 50}px, ${-(t.h + 60)}px, ${t.z}px)`,
+          background: 'rgba(212,175,55,0.9)',
+          color: '#0F172A',
+          padding: '4px 12px',
+          borderRadius: '20px',
+          fontSize: '11px',
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+        }}>
+          📍 {t.label} — Selected
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── INTERIOR SCENE ───────────────────────────────────────────────────────────
+function InteriorScene({ style, isNight, tick }) {
+  const palettes = {
+    Modern:       { floor: '#3D1F0D', wall: '#0F172A', accent: '#D4AF37', sofa: '#1E293B', ceiling: '#0A0F1D' },
+    Luxury:       { floor: '#F8FAFC', wall: '#1E1B4B', accent: '#D4AF37', sofa: '#312E81', ceiling: '#1a1839' },
+    Scandinavian: { floor: '#D6B38C', wall: '#F1F5F9', accent: '#94A3B8', sofa: '#CBD5E1', ceiling: '#E2E8F0' },
+    Minimalist:   { floor: '#94A3B8', wall: '#475569', accent: '#CBD5E1', sofa: '#334155', ceiling: '#1E293B' },
+  };
+  const p = palettes[style] || palettes.Modern;
+  const gold = '#D4AF37';
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d' }}>
+      {/* Floor */}
+      <Box w={320} h={6} d={280} x={0} y={0} z={0} color={p.floor} shadowColor="#000" />
+      {/* Ceiling */}
+      <Box w={320} h={6} d={280} x={0} y={180} z={0} color={p.ceiling} shadowColor="#000" />
+      {/* Back wall */}
+      <Box w={320} h={180} d={6} x={0} y={90} z={-140} color={p.wall} shadowColor="#000" />
+      {/* Left wall */}
+      <Box w={6} h={180} d={280} x={-160} y={90} z={0} color={p.wall} shadowColor="#000" />
+      {/* Right wall */}
+      <Box w={6} h={180} d={280} x={160} y={90} z={0} color={p.wall} shadowColor="#000" />
+
+      {/* Big window on back wall */}
+      <Box w={130} h={100} d={4} x={0} y={100} z={-138} color={gold} shadowColor="#000" />
+      <Box w={124} h={94} d={5} x={0} y={100} z={-136}
+        color={isNight ? 'rgba(20,30,80,0.9)' : 'rgba(100,180,255,0.4)'}
+        shadowColor="rgba(0,0,0,0.5)"
+        style={{ opacity: 0.85 }}
+      />
+
+      {/* Ceiling light */}
+      <Box w={40} h={6} d={40} x={0} y={175} z={-20}
+        color={gold}
+        shadowColor="#000"
+        style={{ boxShadow: isNight ? `0 0 60px 30px rgba(255,230,100,0.3)` : `0 0 30px 10px rgba(255,230,100,0.1)` }}
+      />
+
+      {/* Sofa */}
+      <Box w={180} h={30} d={70} x={0} y={30} z={60} color={p.sofa} shadowColor="#000" />
+      <Box w={180} h={50} d={18} x={0} y={50} z={94} color={p.sofa} shadowColor="#000" />
+      <Box w={22} h={50} d={70} x={-101} y={50} z={60} color={p.sofa} shadowColor="#000" />
+      <Box w={22} h={50} d={70} x={101} y={50} z={60} color={p.sofa} shadowColor="#000" />
+
+      {/* Coffee table */}
+      <Box w={80} h={8} d={45} x={0} y={14} z={-10}
+        color={style === 'Luxury' ? gold : '#334155'} shadowColor="#000"
+      />
+      {/* Table legs */}
+      {[[-35,-18],[35,-18],[-35,12],[35,12]].map(([tx,tz],i) => (
+        <Box key={i} w={6} h={14} d={6} x={tx} y={7} z={tz} color="#1E293B" shadowColor="#000" />
+      ))}
+
+      {/* TV unit on back wall */}
+      <Box w={200} h={20} d={30} x={0} y={14} z={-120} color="#0F172A" shadowColor="#000" />
+      {/* TV screen */}
+      <Box w={160} h={90} d={6} x={0} y={80} z={-134}
+        color={isNight ? '#1a3a6e' : '#0F172A'}
+        shadowColor="#000"
+        style={{
+          boxShadow: isNight ? '0 0 30px rgba(56,189,248,0.3)' : 'none',
+        }}
+      />
+
+      {/* Floor lamp */}
+      <Box w={6} h={120} d={6} x={130} y={60} z={-90} color="#334155" shadowColor="#000" />
+      <Box w={24} h={20} d={24} x={130} y={126} z={-90}
+        color={gold}
+        shadowColor="#000"
+        style={{ boxShadow: isNight ? '0 0 30px 15px rgba(255,220,80,0.25)' : 'none' }}
+      />
+
+      {/* Rug */}
+      <Box w={200} h={2} d={150} x={0} y={4} z={10}
+        color={style === 'Luxury' ? '#3730a3' : style === 'Scandinavian' ? '#DBEAFE' : '#1E293B'}
+        shadowColor="#000"
+      />
+
+      {/* Plants */}
+      <Box w={18} h={18} d={18} x={-130} y={9} z={-110} color="#166534" shadowColor="#000" />
+      <Box w={12} h={30} d={12} x={-130} y={33} z={-110} color="#15803d" shadowColor="#000" style={{ borderRadius: '50%' }} />
+      <Box w={20} h={20} d={20} x={140} y={10} z={70} color="#166534" shadowColor="#000" />
+    </div>
+  );
+}
+
+// ─── TOWER COMPONENT ──────────────────────────────────────────────────────────
+function Tower({ id, label, h, x, z, w, d, floors, gold, isSelected, isHovered, isNight, tick, onClick, onHover, onLeave }) {
+  const glowColor = isSelected ? gold : isHovered ? '#94A3B8' : '#334155';
+  const bodyColor = isSelected
+    ? 'linear-gradient(180deg, #2a1f00, #1a1500)'
+    : 'linear-gradient(180deg, #1E293B, #0F172A)';
+  const glowIntensity = isSelected ? '0 0 40px rgba(212,175,55,0.6)' : isHovered ? '0 0 20px rgba(148,163,184,0.3)' : 'none';
+
+  // Window rows
+  const winRows = [];
+  for (let f = 0; f < Math.min(floors, 12); f++) {
+    const yOff = (f / floors) * h + 10;
+    const lit = isNight && ((f + tick) % 3 !== 2);
+    const winColor = lit ? '#FFE082' : '#1E293B';
+    const winGlow = lit ? '0 0 6px rgba(255,224,130,0.8)' : 'none';
+    for (let side = 0; side < 2; side++) {
+      winRows.push({ f, side, yOff, winColor, winGlow });
+    }
+  }
+
+  return (
+    <g3 style={{ position: 'absolute', transformStyle: 'preserve-3d' }}>
+      {/* Base */}
+      <Box w={w + 10} h={8} d={d + 10} x={x} y={4} z={z} color="#0F172A" shadowColor="#000" />
+
+      {/* Main body */}
+      <div
+        onClick={onClick}
+        onMouseEnter={onHover}
+        onMouseLeave={onLeave}
+        style={{
+          position: 'absolute',
+          width: `${w}px`, height: `${h}px`, depth: `${d}px`,
+          transform: `translate3d(${x - w / 2}px, ${-(h)}px, ${z - d / 2}px)`,
+          transformStyle: 'preserve-3d',
+          cursor: 'pointer',
+        }}
+      >
+        {/* Front face */}
+        <div style={{
+          position: 'absolute', width: `${w}px`, height: `${h}px`,
+          background: bodyColor,
+          border: `1px solid ${glowColor}`,
+          boxShadow: glowIntensity,
+          transform: `translateZ(${d / 2}px)`,
+          transition: 'all 0.3s',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'flex-end', paddingBottom: '8px',
+        }}>
+          {/* Window grid on front */}
+          <div style={{ position: 'absolute', inset: '10px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '6px', padding: '8px' }}>
+            {[...Array(Math.min(floors * 3, 30))].map((_, i) => (
+              <div key={i} style={{
+                background: isNight && (i + tick) % 4 !== 3 ? '#FFE082' : 'rgba(255,255,255,0.05)',
+                borderRadius: '2px',
+                boxShadow: isNight && (i + tick) % 4 !== 3 ? '0 0 4px rgba(255,224,130,0.6)' : 'none',
+                transition: 'all 1s',
+              }} />
+            ))}
+          </div>
+          {/* Label */}
+          <div style={{
+            position: 'absolute', bottom: '8px',
+            background: isSelected ? gold : 'rgba(0,0,0,0.6)',
+            color: isSelected ? '#0F172A' : '#94A3B8',
+            padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700,
+          }}>Tower {label}</div>
+        </div>
+        {/* Right face */}
+        <div style={{
+          position: 'absolute', width: `${d}px`, height: `${h}px`,
+          background: isSelected ? 'linear-gradient(180deg, #1a1500,#0f0e00)' : 'linear-gradient(180deg,#0F172A,#080d16)',
+          border: `1px solid ${glowColor}`,
+          transform: `rotateY(-90deg) translateZ(${-d / 2}px) translateX(${-d}px)`,
+          transition: 'all 0.3s',
+        }} />
+        {/* Top face */}
+        <div style={{
+          position: 'absolute', width: `${w}px`, height: `${d}px`,
+          background: isSelected ? gold : '#1E293B',
+          transform: `rotateX(90deg) translateZ(${-h}px) translateY(${d / 2}px)`,
+          transition: 'all 0.3s',
+        }} />
+      </div>
+    </g3>
+  );
+}
+
+// ─── TREE ─────────────────────────────────────────────────────────────────────
+function Tree({ x, z, h, isNight }) {
+  return (
+    <>
+      <Box w={8} h={h * 0.4} d={8} x={x} y={h * 0.2} z={z} color="#5c4033" shadowColor="#000" />
+      <Box w={h * 0.7} h={h * 0.6} d={h * 0.7} x={x} y={h * 0.7} z={z}
+        color={isNight ? '#0d3b1e' : '#15803d'}
+        shadowColor="#000"
+        style={{ borderRadius: '50% 50% 40% 40%' }}
+      />
+    </>
+  );
+}
+
+// ─── GENERIC 3D BOX ───────────────────────────────────────────────────────────
+function Box({ w, h, d, x = 0, y = 0, z = 0, color, shadowColor, label, labelColor, onClick, hoverable, style: extraStyle }) {
+  const [hov, setHov] = useState(false);
+  const baseStyle = {
+    position: 'absolute',
+    width: `${w}px`,
+    height: `${h}px`,
+    transformStyle: 'preserve-3d',
+    transform: `translate3d(${x - w / 2}px, ${-y - h}px, ${z - d / 2}px)`,
+    cursor: onClick ? 'pointer' : 'inherit',
+  };
+
+  const faceStyle = (face) => {
+    const baseColor = typeof color === 'string' && color.startsWith('linear') ? color : color;
+    const dimFactor = face === 'right' ? '0.7' : face === 'top' ? '1.1' : '0.9';
+    const styles = {
+      position: 'absolute',
+      transition: 'all 0.2s',
+    };
+    if (face === 'front') return { ...styles, width: `${w}px`, height: `${h}px`, background: baseColor, transform: `translateZ(${d / 2}px)`, boxShadow: hov && hoverable ? '0 0 20px rgba(212,175,55,0.4)' : 'none', ...extraStyle };
+    if (face === 'back')  return { ...styles, width: `${w}px`, height: `${h}px`, background: baseColor, transform: `rotateY(180deg) translateZ(${d / 2}px)` };
+    if (face === 'right') return { ...styles, width: `${d}px`, height: `${h}px`, background: typeof color === 'string' && color.startsWith('linear') ? '#1a2535' : shadeColor(color, -30), transform: `rotateY(-90deg) translateZ(${-d / 2}px) translateX(${-d}px)` };
+    if (face === 'left')  return { ...styles, width: `${d}px`, height: `${h}px`, background: typeof color === 'string' && color.startsWith('linear') ? '#0f1a28' : shadeColor(color, -50), transform: `rotateY(90deg) translateZ(${-w + d / 2}px)` };
+    if (face === 'top')   return { ...styles, width: `${w}px`, height: `${d}px`, background: typeof color === 'string' && color.startsWith('linear') ? '#334155' : shadeColor(color, 20), transform: `rotateX(90deg) translateZ(${-h}px) translateY(${d / 2}px)` };
+    if (face === 'bottom') return { ...styles, width: `${w}px`, height: `${d}px`, background: shadowColor || '#000', transform: `rotateX(-90deg) translateY(${d / 2}px)` };
+    return styles;
+  };
+
+  return (
+    <div style={baseStyle} onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+      <div style={faceStyle('front')}>{label && <span style={{ position:'absolute',bottom:'6px',left:'50%',transform:'translateX(-50%)',color:labelColor||'#fff',fontSize:'10px',fontWeight:700,whiteSpace:'nowrap' }}>{label}</span>}</div>
+      <div style={faceStyle('back')} />
+      <div style={faceStyle('right')} />
+      <div style={faceStyle('left')} />
+      <div style={faceStyle('top')} />
+      <div style={faceStyle('bottom')} />
+    </div>
+  );
+}
+
+function shadeColor(color, pct) {
+  if (!color || typeof color !== 'string' || color.startsWith('linear') || color.startsWith('rgba') || color.startsWith('rgb')) return color;
+  try {
+    let num = parseInt(color.replace('#',''), 16);
+    const r = Math.min(255, Math.max(0, (num >> 16) + pct));
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + pct));
+    const b = Math.min(255, Math.max(0, (num & 0x0000FF) + pct));
+    return `rgb(${r},${g},${b})`;
+  } catch { return color; }
 }
