@@ -13,6 +13,7 @@ import ThreeDViewer from './components/ThreeDViewer';
 import CRM from './components/CRM';
 import VirtualTour from './components/VirtualTour';
 import EMICalculator from './components/EMICalculator';
+import AutoCADWorkspace from './components/AutoCADWorkspace';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
@@ -260,6 +261,18 @@ export default function App() {
   const copilotChartRef = useRef(null);
   const copilotChartInstance = useRef(null);
 
+  // AutoCAD states
+  const [copilotPaneMode, setCopilotPaneMode] = useState("graph"); // 'graph' or 'cad'
+  const [cadLayers, setCadLayers] = useState({
+    dimensions: true,
+    hvac: false,
+    electrical: false,
+    structural: false,
+    plumbing: false
+  });
+  const [selectedCADUnit, setSelectedCADUnit] = useState("skyview-301");
+  const [cadHighlightedRooms, setCadHighlightedRooms] = useState([]);
+
   // Chart refs
   const chartRefs = {
     leadsSource: useRef(null),
@@ -281,6 +294,44 @@ export default function App() {
 
   const streamCopilotResponse = async (userMessage) => {
     if (!userMessage.trim()) return;
+
+    // AutoCAD integration: parse keyword triggers in user input
+    const msgLower = userMessage.toLowerCase();
+    let detectedLayers = { ...cadLayers };
+    let hasCADTriggers = false;
+    let newHighlights = [];
+
+    if (msgLower.includes("hvac") || msgLower.includes("duct") || msgLower.includes("ventilation")) {
+      detectedLayers.hvac = true;
+      hasCADTriggers = true;
+      newHighlights = ["living", "kitchen", "master-bed", "bed-2", "bed-3"];
+    }
+    if (msgLower.includes("structural") || msgLower.includes("pillar") || msgLower.includes("load-bearing") || msgLower.includes("column")) {
+      detectedLayers.structural = true;
+      hasCADTriggers = true;
+    }
+    if (msgLower.includes("dimension") || msgLower.includes("area") || msgLower.includes("size") || msgLower.includes("measure")) {
+      detectedLayers.dimensions = true;
+      hasCADTriggers = true;
+    }
+    if (msgLower.includes("electrical") || msgLower.includes("wiring") || msgLower.includes("socket") || msgLower.includes("switch")) {
+      detectedLayers.electrical = true;
+      hasCADTriggers = true;
+    }
+    if (msgLower.includes("plumbing") || msgLower.includes("water") || msgLower.includes("pipe") || msgLower.includes("drain")) {
+      detectedLayers.plumbing = true;
+      hasCADTriggers = true;
+    }
+
+    if (hasCADTriggers) {
+      setCadLayers(detectedLayers);
+      setCopilotPaneMode("cad");
+      setCopilotGraphMode(true); // Ensure split view is activated
+      if (newHighlights.length > 0) {
+        setCadHighlightedRooms(newHighlights);
+        setTimeout(() => setCadHighlightedRooms([]), 3500);
+      }
+    }
     
     // Add user message to history
     const updatedHistory = [...copilotHistory, { role: "user", content: userMessage }];
@@ -376,7 +427,19 @@ export default function App() {
       console.error("[Copilot Stream Error]:", err);
       // Fallback Mock Assistant responses to guarantee UX doesn't crash
       let mockReply = "";
-      if (userMessage.toLowerCase().includes("sunlight")) {
+      const msgLower = userMessage.toLowerCase();
+      
+      if (msgLower.includes("hvac") || msgLower.includes("ventilation") || msgLower.includes("duct")) {
+        mockReply = "**Shivalik CAD-Copilot Response**:\n\n- **VRV System Loaded**: I have activated the **HVAC Duct Network** layer (green dashed paths) in your active AutoCAD blueprint viewport.\n- **Air Changes**: The master bedroom receives 8 air changes per hour (ACH) via dedicated ceiling diffusers.\n- **Return Air**: Return air grills are situated in bathroom transition corridors to optimize pressure balances.";
+      } else if (msgLower.includes("structural") || msgLower.includes("pillar") || msgLower.includes("load-bearing") || msgLower.includes("column")) {
+        mockReply = "**Shivalik CAD-Copilot Response**:\n\n- **Structural Pillars Overlay**: I have isolated the **Structural Load Pillars** (red-glowing RC pillars) on the canvas.\n- **Load Capacity**: Columns on the inner core support up to 80-120 tons of structural load. They are constructed with M40 grade reinforced concrete.\n- **Seismic Design**: Fully compliant with IS 1893 (Zone 3) building codes for earthquake safety.";
+      } else if (msgLower.includes("dimension") || msgLower.includes("area") || msgLower.includes("size") || msgLower.includes("measure")) {
+        mockReply = "**Shivalik CAD-Copilot Response**:\n\n- **Dimensions Activated**: **Dimension Guidelines** (gold lines) are enabled.\n- **Key Rooms**:\n  * *Living Room*: 22 x 18 ft (396 sq.ft.)\n  * *Master Bed*: 14 x 16 ft (440 sq.ft.)\n  * *Total Carpet Area*: 1,540 sq.ft.\n- **Ruler Tool**: You can also use the **Ruler Measure** tool in the toolbar to click and inspect custom spans.";
+      } else if (msgLower.includes("electrical") || msgLower.includes("wiring") || msgLower.includes("socket") || msgLower.includes("switch")) {
+        mockReply = "**Shivalik CAD-Copilot Response**:\n\n- **Electrical Grid Loaded**: The **Electrical Lighting Grid** (cyan neon paths) is overlaid on the layout.\n- **DB Panel**: The 3-phase distribution board is located in the living foyer.\n- **Automation**: Fully pre-wired for central home automation gateways and smart ambient dimmer panels.";
+      } else if (msgLower.includes("plumbing") || msgLower.includes("water") || msgLower.includes("pipe") || msgLower.includes("drain")) {
+        mockReply = "**Shivalik CAD-Copilot Response**:\n\n- **Plumbing Pipeline Flows**: I have enabled the **Plumbing Pipeline** layer showing Hot Water lines (red) and Cold Water lines (blue).\n- **Riser Connection**: Connects to the main plumbing shaft behind the modular kitchen, isolating sound vibration away from bedrooms.";
+      } else if (userMessage.toLowerCase().includes("sunlight")) {
         mockReply = "**Shivalik Copilot Contextual Response**:\n\n- **Shivalik Edge** (Bopal): Sunlight Index **9.0/10**. Outstanding peak noon natural light exposure.\n- **Shivalik Skyview** (Ambawadi): Sunlight Index **8.5/10**. Optimized East-facing solar layouts.\n- **Shivalik Highlife** (SG Highway): Sunlight Index **7.8/10**. Highrise shade structures designed for thermal comfort.\n\n*Note: Falling back to local offline knowledge indexes due to API connectivity status.*";
       } else if (userMessage.toLowerCase().includes("roi") || userMessage.toLowerCase().includes("cagr") || userMessage.toLowerCase().includes("appreciation")) {
         mockReply = "**Shivalik Copilot Contextual Response**:\n\n- **Shivalik Edge** (Bopal): Appreciation CAGR **14.2%** (glowing launch phase).\n- **Shivalik Highlife** (SG Highway): Appreciation CAGR **13.5%** (robust rental zone yield).\n- **Shivalik Skyview** (Ambawadi): Appreciation CAGR **13.2%** (stable luxury core).\n\n*Note: Falling back to local offline knowledge indexes due to API connectivity status.*";
@@ -2079,17 +2142,45 @@ export default function App() {
                       </div>
                     </div>
                     <div className="flex align-center gap-4">
-                      <button 
-                        className={`btn-toggle-graph-new ${copilotGraphMode ? 'active' : ''}`}
-                        onClick={() => {
-                          setCopilotGraphMode(!copilotGraphMode);
-                          triggerTelemetry("copilot_graph_toggle", `Toggled graph mode to ${!copilotGraphMode}`);
-                        }}
-                      >
-                        📊 {copilotGraphMode ? "Hide Insights Graph" : "Show Insights Graph"}
-                      </button>
+                      {/* Unified Segment Switcher to avoid overlapping button wrapping */}
+                      <div className="flex align-center gap-1" style={{ background: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <button 
+                          className={`btn-toggle-graph-new ${!copilotGraphMode ? 'active' : ''}`}
+                          style={{ margin: 0, padding: '5px 10px', fontSize: '10.5px' }}
+                          onClick={() => {
+                            setCopilotGraphMode(false);
+                            triggerTelemetry("copilot_workspace_mode", "Chat Only");
+                          }}
+                        >
+                          💬 Chat Only
+                        </button>
+                        <button 
+                          className={`btn-toggle-graph-new ${copilotGraphMode && copilotPaneMode === 'graph' ? 'active' : ''}`}
+                          style={{ margin: 0, padding: '5px 10px', fontSize: '10.5px' }}
+                          onClick={() => {
+                            setCopilotGraphMode(true);
+                            setCopilotPaneMode('graph');
+                            triggerTelemetry("copilot_workspace_mode", "AI Graphs");
+                          }}
+                        >
+                          📊 AI Graphs
+                        </button>
+                        <button 
+                          className={`btn-toggle-graph-new ${copilotGraphMode && copilotPaneMode === 'cad' ? 'active' : ''}`}
+                          style={{ margin: 0, padding: '5px 10px', fontSize: '10.5px' }}
+                          onClick={() => {
+                            setCopilotGraphMode(true);
+                            setCopilotPaneMode('cad');
+                            triggerTelemetry("copilot_workspace_mode", "AutoCAD View");
+                          }}
+                        >
+                          📐 AutoCAD View
+                        </button>
+                      </div>
+                      
                       <button 
                         className="btn-text-clear"
+                        style={{ fontSize: '11px', padding: '4px 8px', whiteSpace: 'nowrap' }}
                         onClick={() => {
                           setCopilotHistory([
                             { role: "assistant", content: "Hello! I am Shivalik Copilot, your advanced real-time AI architectural assistant. I can parse blueprint layouts, compare sunlight values, check RERA registration documents, and estimate appreciation CAGRs. Ask me anything about Shivalik properties!" }
@@ -2097,7 +2188,7 @@ export default function App() {
                           triggerTelemetry("copilot_clear", "Cleared chat console history");
                         }}
                       >
-                        Clear History
+                        Clear
                       </button>
                     </div>
                   </div>
@@ -2151,6 +2242,40 @@ export default function App() {
                     )}
                   </div>
 
+                  {/* AutoCAD Integration preset chips */}
+                  <div className="copilot-cad-chips-container">
+                    <button 
+                      className="cad-chip-btn"
+                      onClick={() => streamCopilotResponse("Verify standard dimensions & carpet area on the floorplan")}
+                    >
+                      📐 Dimensions
+                    </button>
+                    <button 
+                      className="cad-chip-btn"
+                      onClick={() => streamCopilotResponse("Highlight load-bearing structural pillars")}
+                    >
+                      🧱 Structural Pillars
+                    </button>
+                    <button 
+                      className="cad-chip-btn"
+                      onClick={() => streamCopilotResponse("Show HVAC ventilation duct layout")}
+                    >
+                      🌬️ HVAC Ducts
+                    </button>
+                    <button 
+                      className="cad-chip-btn"
+                      onClick={() => streamCopilotResponse("Load electrical switch and socket grid layout")}
+                    >
+                      ⚡ Electrical Grid
+                    </button>
+                    <button 
+                      className="cad-chip-btn"
+                      onClick={() => streamCopilotResponse("Verify plumbing riser pipelines")}
+                    >
+                      🚰 Plumbing Flows
+                    </button>
+                  </div>
+
                   <div className="copilot-chat-input-bar">
                     <textarea
                       value={copilotInput}
@@ -2174,39 +2299,63 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Right Pane - Dynamic Graph Panel */}
+                {/* Right Pane - Dynamic Graph Panel or AutoCAD Workspace */}
                 {copilotGraphMode && (
-                  <div className="glass-card copilot-graph-pane">
-                    <div className="graph-pane-header">
-                      <h4>AI Real-time Graph Analyzer</h4>
-                      <select 
-                        value={copilotChartType} 
-                        onChange={(e) => {
-                          setCopilotChartType(e.target.value);
-                          triggerTelemetry("copilot_graph_type", `Changed graph comparison metric to ${e.target.value}`);
+                  <div 
+                    className={`glass-card ${copilotPaneMode === 'cad' ? 'copilot-cad-pane-outer' : 'copilot-graph-pane'}`} 
+                    style={copilotPaneMode === 'cad' ? { padding: 0, height: '660px' } : {}}
+                  >
+                    {copilotPaneMode === 'cad' ? (
+                      <AutoCADWorkspace
+                        selectedUnit={selectedCADUnit}
+                        layers={cadLayers}
+                        onLayerToggle={(layerName) => {
+                          setCadLayers(prev => ({
+                            ...prev,
+                            [layerName]: !prev[layerName]
+                          }));
+                          triggerTelemetry("cad_layer_toggle", `Toggled layer: ${layerName}`);
                         }}
-                        className="graph-metric-select"
-                      >
-                        <option value="radar">Physical Ratings (Sunlight/Quietness/Livability)</option>
-                        <option value="price">Starting Price Point (Cr)</option>
-                        <option value="cagr">Appreciation CAGR (%)</option>
-                      </select>
-                    </div>
-                    
-                    <div className="copilot-chart-wrapper">
-                      <canvas ref={copilotChartRef}></canvas>
-                    </div>
+                        onUnitChange={(unitId) => {
+                          setSelectedCADUnit(unitId);
+                          triggerTelemetry("cad_unit_change", `Selected CAD layout: ${unitId}`);
+                        }}
+                        highlightedRooms={cadHighlightedRooms}
+                      />
+                    ) : (
+                      <>
+                        <div className="graph-pane-header">
+                          <h4>AI Real-time Graph Analyzer</h4>
+                          <select 
+                            value={copilotChartType} 
+                            onChange={(e) => {
+                              setCopilotChartType(e.target.value);
+                              triggerTelemetry("copilot_graph_type", `Changed graph comparison metric to ${e.target.value}`);
+                            }}
+                            className="graph-metric-select"
+                          >
+                            <option value="radar">Physical Ratings (Sunlight/Quietness/Livability)</option>
+                            <option value="price">Starting Price Point (Cr)</option>
+                            <option value="cagr">Appreciation CAGR (%)</option>
+                          </select>
+                        </div>
+                        
+                        <div className="copilot-chart-wrapper">
+                          <canvas ref={copilotChartRef}></canvas>
+                        </div>
 
-                    <div className="graph-telemetry-meta">
-                      <div className="meta-row">
-                        <span>Active Model Context</span>
-                        <strong>openai/gpt-oss-20b</strong>
-                      </div>
-                      <div className="meta-row">
-                        <span>Analysis Speed</span>
-                        <span className="text-green">Dynamic Real-time</span>
-                      </div>
-                    </div>
+                        <div className="graph-telemetry-meta">
+                          <div className="meta-row">
+                            <span>Active Model Context</span>
+                            <strong>openai/gpt-oss-20b</strong>
+                          </div>
+                          <div className="meta-row">
+                            <span>Analysis Speed</span>
+                            <span className="text-green">Dynamic Real-time</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
