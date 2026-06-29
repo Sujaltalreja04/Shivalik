@@ -146,9 +146,10 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState("all");
 
   // Township explorer states
-  const [selectedTower, setSelectedTower] = useState(null); 
+  const [selectedTower, setSelectedTower] = useState(null);
   const [selectedAmenity, setSelectedAmenity] = useState(null);
   const [narrationText, setNarrationText] = useState("Welcome to Shivalik Premium Township Discoverer. Click any building on the left to activate physical metrics and AI insights.");
+  const [buildingViewTower, setBuildingViewTower] = useState(null); // null = township, else = inside tower
 
   // Chatbot states
   const [chatMessages, setChatMessages] = useState([
@@ -1014,8 +1015,9 @@ export default function App() {
                   </div>
                   <div className="three-d-simulation-container" style={{ width: '100%', height: '500px', minHeight: '500px', position: 'relative' }}>
                     <ThreeDErrorBoundary>
-                      <ThreeDViewer 
-                        mode="township"
+                      <ThreeDViewer
+                        mode={buildingViewTower ? "building" : "township"}
+                        buildingTower={buildingViewTower}
                         selectedTower={selectedTower}
                         onSelectTower={handleSelectTower}
                         onSelectAmenity={handleSelectAmenity}
@@ -1023,8 +1025,22 @@ export default function App() {
                         timeOfDay={geoTimeOfDay}
                       />
                     </ThreeDErrorBoundary>
+                    {buildingViewTower && (
+                      <button
+                        onClick={() => setBuildingViewTower(null)}
+                        style={{
+                          position: 'absolute', top: '10px', left: '10px', zIndex: 20,
+                          background: 'rgba(10,15,29,0.85)', border: '1px solid rgba(212,175,55,0.4)',
+                          color: '#D4AF37', padding: '6px 14px', borderRadius: '8px',
+                          cursor: 'pointer', fontSize: '12px', fontWeight: 700,
+                          backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', gap: '6px',
+                        }}
+                      >
+                        ← Back to Township
+                      </button>
+                    )}
                   </div>
-                  <div className="helper-text-bar"><MousePointer /> Left-Click & Drag to rotate. Scroll to Zoom. Click Towers or Clubhouse Gym/Pool to sync details.</div>
+                  <div className="helper-text-bar"><MousePointer /> Left-Click & Drag to rotate. Scroll to Zoom. {buildingViewTower ? 'Click a flat to highlight it.' : 'Click Towers to enter. Click Gym/Pool to sync details.'}</div>
                 </div>
 
                 {/* Right side info panel */}
@@ -1074,7 +1090,8 @@ export default function App() {
                           <span>Simulated layout preview</span>
                         </div>
                         <div className="detail-actions-stack">
-                          <button className="btn btn-gold" onClick={() => { setActiveTab("ar-viewer"); setArSubTab("tabletop"); }}><Layout /> Launch Interactive AR Viewer</button>
+                          <button className="btn btn-gold" onClick={() => setBuildingViewTower(selectedTower)} style={{ fontSize: '13px' }}>🏢 Enter Tower — Walk Through Flats</button>
+                          <button className="btn btn-outline" onClick={() => { setActiveTab("ar-viewer"); setArSubTab("tabletop"); }}><Layout /> Launch AR Viewer</button>
                           <button className="btn btn-outline" onClick={() => { setCompare1(selectedTower === 'C' ? "high-604" : "sky-301"); setActiveTab("comparison"); }}><GitCompare /> Compare in Matrix</button>
                         </div>
                       </div>
