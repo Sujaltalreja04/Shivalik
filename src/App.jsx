@@ -133,10 +133,124 @@ const PROPERTY_SCORES = {
   "Shivalik Greenwoods": { sunlightScore: 9.5, noiseScore: 1.2, investmentScore: 9.0, livabilityScore: 9.6 }
 };
 
+const ARCH_SCENARIOS = {
+  ai_copilot: {
+    title: "AI Copilot Dialogue Flow",
+    description: "Real-time AI message generation using serverless reactive calls.",
+    steps: [
+      {
+        title: "1. Client Trigger",
+        desc: "User types a message in the AI Advisor/Copilot prompt box and clicks 'Send'.",
+        highlight: "Client Layer"
+      },
+      {
+        title: "2. WebSocket Connection",
+        desc: "Vite SPA establishes a persistent WebSocket connection through the Edge Network.",
+        highlight: "Edge Layer"
+      },
+      {
+        title: "3. Convex Backend Host",
+        desc: "Convex receives the message mutation, triggers serverless action, and verifies permissions.",
+        highlight: "Convex Cloud"
+      },
+      {
+        title: "4. Groq Inference Engine",
+        desc: "The action calls the Groq Cloud API, sending system prompts and history context.",
+        highlight: "AI/S3/Telemetry"
+      },
+      {
+        title: "5. Real-time Stream Back",
+        desc: "Groq streams response chunks back to Convex, which instantly synchronizes them to the React client via open WebSockets.",
+        highlight: "Client Layer"
+      }
+    ]
+  },
+  township_load: {
+    title: "3D Township View Flow",
+    description: "Loading high-density compressed assets and tracking user telemetry.",
+    steps: [
+      {
+        title: "1. Navigation Trigger",
+        desc: "User clicks 'Explore 3D Township' or the 3D button, rendering the ThreeDViewer WebGL canvas.",
+        highlight: "Client Layer"
+      },
+      {
+        title: "2. S3 Asset Retrieval",
+        desc: "Three.js initiates GLTF loader requests to fetch compressed 3D models from AWS S3 via CloudFront.",
+        highlight: "AI/S3/Telemetry"
+      },
+      {
+        title: "3. Draco Decompression",
+        desc: "Client-side Web Assembly workers decompress Draco-packed files, reducing transfer size by 80%.",
+        highlight: "Client Layer"
+      },
+      {
+        title: "4. WebGL Lighting & Controls",
+        desc: "Daylight parameters (fog, ambient, directional lights) compile, and OrbitControls enables user panning/zooming.",
+        highlight: "Client Layer"
+      },
+      {
+        title: "5. Telemetry Logging",
+        desc: "Every drag or tower selection logs a clickstream metric to PostHog and Sentry for error tracking.",
+        highlight: "AI/S3/Telemetry"
+      }
+    ]
+  },
+  crm_pipeline: {
+    title: "CRM Site Visit & KYC Lead Flow",
+    description: "Securing lead tracking from buyer submission to broker dashboard columns.",
+    steps: [
+      {
+        title: "1. Buyer Submits Form",
+        desc: "Buyer enters Aadhaar/PAN details or books a visit. React invokes Convex Mutation.",
+        highlight: "Client Layer"
+      },
+      {
+        title: "2. Convex DB Synchronization",
+        desc: "Convex writes lead record, scores transaction using rule variables, and updates leads collection.",
+        highlight: "Convex Cloud"
+      },
+      {
+        title: "3. Real-time UI Subscription",
+        desc: "The Broker / Sales CRM query subscription automatically registers the new database entry.",
+        highlight: "Convex Cloud"
+      },
+      {
+        title: "4. Kanban Dashboard Refresh",
+        desc: "CRM panel executes a transition animation, inserting a card in 'New Lead' or 'Visit Scheduled'.",
+        highlight: "Client Layer"
+      }
+    ]
+  }
+};
+
+const getTabFromHash = () => {
+  const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
+  const validTabs = [
+    "landing", "visualize", "3d-township", "compare", "ai-advisor", 
+    "copilot", "interior", "finder", "customer-portal", "leads", 
+    "sales-analytics", "exec-insights", "inventory", "architecture"
+  ];
+  return validTabs.includes(hash) ? hash : "landing";
+};
+
 export default function App() {
   const { t, i18n } = useTranslation();
   // Navigation & Role states
-  const [activeTab, setActiveTab] = useState("landing");
+  const [activeTab, setActiveTab] = useState(getTabFromHash());
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTab(getTabFromHash());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    window.location.hash = activeTab;
+  }, [activeTab]);
+
   const [role, setRole] = useState("buyer"); 
   const [activeBuyerPersonaId, setActiveBuyerPersonaId] = useState("");
 
@@ -196,6 +310,11 @@ export default function App() {
   const [rotY, setRotY] = useState(-35);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // System Architecture page states
+  const [activeArchScenario, setActiveArchScenario] = useState("ai_copilot");
+  const [archStep, setArchStep] = useState(0);
+  const [showFullDiagram, setShowFullDiagram] = useState(false);
 
   // AI Interior Designer states
   const [interiorStyle, setInteriorStyle] = useState("Modern");
@@ -1304,60 +1423,60 @@ export default function App() {
           {role === "buyer" && (
             <div className="nav-group">
               <div className="nav-group-title">Buyer Experience</div>
-              <button className={`nav-item ${activeTab === 'landing' ? 'active' : ''}`} onClick={() => setActiveTab('landing')}>
+              <a href="#landing" className={`nav-item ${activeTab === 'landing' ? 'active' : ''}`} onClick={() => setActiveTab('landing')}>
                 <Home /> {t("Discover Projects")}
-              </button>
-              <button className={`nav-item ${activeTab === 'visualize' ? 'active' : ''}`} onClick={() => setActiveTab('visualize')}>
+              </a>
+              <a href="#visualize" className={`nav-item ${activeTab === 'visualize' ? 'active' : ''}`} onClick={() => setActiveTab('visualize')}>
                 <Layers /> {t("Property Visualization")}
-              </button>
-              <button className={`nav-item ${activeTab === '3d-township' ? 'active' : ''}`} onClick={() => setActiveTab('3d-township')}>
+              </a>
+              <a href="#3d-township" className={`nav-item ${activeTab === '3d-township' ? 'active' : ''}`} onClick={() => setActiveTab('3d-township')}>
                 <Building /> {t("3D Township Explorer")}
-              </button>
-              <button className={`nav-item ${activeTab === 'compare' ? 'active' : ''}`} onClick={() => setActiveTab('compare')}>
+              </a>
+              <a href="#compare" className={`nav-item ${activeTab === 'compare' ? 'active' : ''}`} onClick={() => setActiveTab('compare')}>
                 <TrendingUp /> {t("Compare Properties")}
-              </button>
-              <button className={`nav-item ${activeTab === 'ai-advisor' ? 'active' : ''}`} onClick={() => setActiveTab('ai-advisor')}>
+              </a>
+              <a href="#ai-advisor" className={`nav-item ${activeTab === 'ai-advisor' ? 'active' : ''}`} onClick={() => setActiveTab('ai-advisor')}>
                 <MessageSquare /> AI Advisor Chat
-              </button>
-              <button className={`nav-item ${activeTab === 'copilot' ? 'active' : ''}`} onClick={() => {
+              </a>
+              <a href="#copilot" className={`nav-item ${activeTab === 'copilot' ? 'active' : ''}`} onClick={() => {
                 setActiveTab('copilot');
                 setSelectedProjectDetails(null);
               }}>
                 <Bot className="text-gold" /> Shivalik Copilot
-              </button>
-              <button className={`nav-item ${activeTab === 'interior' ? 'active' : ''}`} onClick={() => setActiveTab('interior')}>
+              </a>
+              <a href="#interior" className={`nav-item ${activeTab === 'interior' ? 'active' : ''}`} onClick={() => setActiveTab('interior')}>
                 <Paintbrush /> AI Interior Designer
-              </button>
-              <button className={`nav-item ${activeTab === 'finder' ? 'active' : ''}`} onClick={() => setActiveTab('finder')}>
+              </a>
+              <a href="#finder" className={`nav-item ${activeTab === 'finder' ? 'active' : ''}`} onClick={() => setActiveTab('finder')}>
                 <Sparkles /> Smart Match Finder
-              </button>
-              <button className={`nav-item ${activeTab === 'customer-portal' ? 'active' : ''}`} onClick={() => setActiveTab('customer-portal')}>
+              </a>
+              <a href="#customer-portal" className={`nav-item ${activeTab === 'customer-portal' ? 'active' : ''}`} onClick={() => setActiveTab('customer-portal')}>
                 <FileCheck /> Customer Portal
-              </button>
+              </a>
             </div>
           )}
 
           {role === "sales" && (
             <div className="nav-group">
               <div className="nav-group-title">Sales Intelligence</div>
-              <button className={`nav-item ${activeTab === 'leads' ? 'active' : ''}`} onClick={() => setActiveTab('leads')}>
+              <a href="#leads" className={`nav-item ${activeTab === 'leads' ? 'active' : ''}`} onClick={() => setActiveTab('leads')}>
                 <Users /> Lead Scoring CRM
-              </button>
-              <button className={`nav-item ${activeTab === 'sales-analytics' ? 'active' : ''}`} onClick={() => setActiveTab('sales-analytics')}>
+              </a>
+              <a href="#sales-analytics" className={`nav-item ${activeTab === 'sales-analytics' ? 'active' : ''}`} onClick={() => setActiveTab('sales-analytics')}>
                 <BarChart2 /> Sales Analytics
-              </button>
+              </a>
             </div>
           )}
 
           {role === "executive" && (
             <div className="nav-group">
               <div className="nav-group-title">Executive Boardroom</div>
-              <button className={`nav-item ${activeTab === 'exec-insights' ? 'active' : ''}`} onClick={() => setActiveTab('exec-insights')}>
+              <a href="#exec-insights" className={`nav-item ${activeTab === 'exec-insights' ? 'active' : ''}`} onClick={() => setActiveTab('exec-insights')}>
                 <TrendingUp /> Executive Insights
-              </button>
-              <button className={`nav-item ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>
+              </a>
+              <a href="#inventory" className={`nav-item ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>
                 <Grid /> Inventory Vacancy Map
-              </button>
+              </a>
             </div>
           )}
         </nav>
@@ -1400,6 +1519,7 @@ export default function App() {
               {activeTab === "sales-analytics" && "Sales Revenue & Conversion Metrics"}
               {activeTab === "exec-insights" && "Executive Leadership Dashboard"}
               {activeTab === "inventory" && "Real-time Block Vacancy Map"}
+              {activeTab === "architecture" && "Platform Architecture & Data Flows"}
             </h2>
           </div>
           <div className="flex align-center gap-4">
@@ -1671,8 +1791,9 @@ export default function App() {
                       <h1 className="hero-title-premium">Find Your Future Home with <span className="gradient-gold-text">AI Intelligence</span></h1>
                       <p className="hero-desc-premium">Experience India's first AI & AR-driven property discovery platform. Walk through floorplans, customize interiors, and identify premium investment potentials from the comfort of your couch.</p>
                       <div className="hero-actions-row-premium">
-                        <button className="btn btn-gold hover-glow" onClick={() => setActiveTab('3d-township')}>Explore 3D Township</button>
-                        <button className="btn btn-outline" onClick={() => setActiveTab('ai-advisor')}>Talk to AI Advisor</button>
+                        <a href="#3d-township" className="btn btn-gold hover-glow" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }} onClick={() => setActiveTab('3d-township')}>Explore 3D Township</a>
+                        <a href="#ai-advisor" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }} onClick={() => setActiveTab('ai-advisor')}>Talk to AI Advisor</a>
+                        <a href="#architecture" className="btn btn-outline hover-glow-gold" style={{ borderColor: 'var(--color-accent)', color: 'var(--color-accent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }} onClick={() => setActiveTab('architecture')}>Explanation</a>
                       </div>
                     </div>
                     <div className="hero-right-pane">
@@ -3495,6 +3616,205 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "architecture" && (
+            <div className="tab-content">
+              <div className="architecture-layout">
+                {/* Intro Row */}
+                <div className="glass-card arch-intro-card">
+                  <div className="arch-intro-header">
+                    <span className="badge badge-gold">SYSTEM DIAGRAMS</span>
+                    <h3>Shivalik High-Performance Platform Architecture</h3>
+                    <p className="text-muted">
+                      Explore the multi-tier hybrid stack powering real-time WebGL renderings, serverless db synchronization, 
+                      and AI completions under 200ms latency.
+                    </p>
+                  </div>
+                  <div className="flex gap-4 mt-4">
+                    <button className="btn btn-gold hover-glow" onClick={() => setShowFullDiagram(true)}>
+                      <Eye size={16} /> View High-Res Architecture Diagram
+                    </button>
+                    <a href="/techstack_architecture_diagram.png" download className="btn btn-outline">
+                      <Download size={16} /> Download Diagram Image
+                    </a>
+                    <button className="btn btn-outline" onClick={() => setActiveTab('landing')}>
+                      ← Return to Discover
+                    </button>
+                  </div>
+                </div>
+
+                {/* Main Split Layout */}
+                <div className="arch-split-grid">
+                  {/* Left Column: Interactive Scenario Simulator */}
+                  <div className="glass-card arch-sim-card">
+                    <div className="card-header-new">
+                      <h4>⚡ Interactive Data Flow Simulator</h4>
+                      <p className="text-muted font-small">Select a transaction scenario to trace step-by-step telemetry paths across backend layers.</p>
+                    </div>
+
+                    <div className="arch-scenario-selectors">
+                      {Object.entries(ARCH_SCENARIOS).map(([key, sc]) => (
+                        <button
+                          key={key}
+                          className={`scenario-btn ${activeArchScenario === key ? 'active' : ''}`}
+                          onClick={() => {
+                            setActiveArchScenario(key);
+                            setArchStep(0);
+                          }}
+                        >
+                          {key === 'ai_copilot' ? '🤖 ' : key === 'township_load' ? '🏗️ ' : '💼 '}
+                          <div>
+                            <strong>{sc.title}</strong>
+                            <p>{sc.description}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="arch-sim-visualizer">
+                      <div className="sim-diagram-canvas">
+                        {/* Interactive flow line */}
+                        <div className="sim-layers-row">
+                          {[
+                            { name: "Client Layer", desc: "React SPA / Three.js" },
+                            { name: "Edge Layer", desc: "Cloudflare / CDN" },
+                            { name: "Convex Cloud", desc: "Live Synced Backend" },
+                            { name: "AI/S3/Telemetry", desc: "Groq / S3 / PostHog" }
+                          ].map((layer, index) => {
+                            const isHighlighted = ARCH_SCENARIOS[activeArchScenario].steps[archStep]?.highlight.includes(layer.name.split(" ")[0]);
+                            return (
+                              <div key={index} className="flex align-center w-100 relative">
+                                <div className={`sim-layer-node ${isHighlighted ? 'highlighted' : ''}`}>
+                                  <h5>{layer.name}</h5>
+                                  <p>{layer.desc}</p>
+                                </div>
+                                {index < 3 && (
+                                  <div className={`sim-flow-arrow ${isHighlighted ? 'active' : ''}`}>
+                                    <ChevronRight size={20} />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Step Detail Card */}
+                      <div className="sim-step-detail-card">
+                        <div className="step-badge">Step {archStep + 1} of {ARCH_SCENARIOS[activeArchScenario].steps.length}</div>
+                        <h5>{ARCH_SCENARIOS[activeArchScenario].steps[archStep].title}</h5>
+                        <p>{ARCH_SCENARIOS[activeArchScenario].steps[archStep].desc}</p>
+                        
+                        <div className="flex justify-between align-center mt-4">
+                          <button 
+                            className="btn btn-outline btn-small"
+                            disabled={archStep === 0}
+                            onClick={() => setArchStep(prev => prev - 1)}
+                          >
+                            Previous Step
+                          </button>
+                          <button 
+                            className="btn btn-gold btn-small"
+                            disabled={archStep === ARCH_SCENARIOS[activeArchScenario].steps.length - 1}
+                            onClick={() => setArchStep(prev => prev + 1)}
+                          >
+                            Next Step
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Tech Stack & Architecture Specs */}
+                  <div className="glass-card arch-spec-card">
+                    <div className="card-header-new">
+                      <h4>🛠️ Infrastructure Technology Matrix</h4>
+                      <p className="text-muted font-small">Core component stack parameters optimized for Shivalik high-fidelity portal requirements.</p>
+                    </div>
+
+                    <div className="tech-matrix-table-wrapper">
+                      <table className="tech-matrix-table">
+                        <thead>
+                          <tr>
+                            <th>Layer</th>
+                            <th>Technology</th>
+                            <th>Purpose / Strategy</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Frontend Core</strong></td>
+                            <td className="text-gold">React 19 / Vite HMR</td>
+                            <td>Serves reactive views, loads dynamic code hooks, and implements responsive layout modules.</td>
+                          </tr>
+                          <tr>
+                            <td><strong>3D Graphics</strong></td>
+                            <td className="text-gold">Three.js / WebGL</td>
+                            <td>Renders township coordinates and luxury room structures client-side in real time.</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Live Backend</strong></td>
+                            <td className="text-gold">Convex Cloud DB</td>
+                            <td>Real-time synchronization for lead status, active activities, and payout status indicators.</td>
+                          </tr>
+                          <tr>
+                            <td><strong>AI Completions</strong></td>
+                            <td className="text-gold">Groq API (Llama-3)</td>
+                            <td>High-speed chat agent response times (under 300ms stream latency) with zero cold-start delay.</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Static Storage</strong></td>
+                            <td className="text-gold">AWS S3 / CloudFront</td>
+                            <td>Distributes compressed Gltf/Glb dollhouse files and approved PDF digital brochures.</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Observability</strong></td>
+                            <td className="text-gold">PostHog / Sentry</td>
+                            <td>Logs buyer behaviors, monitors rendering loops, and analyzes WebGL memory leaks.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="arch-specs-box mt-4">
+                      <h5>🔑 Production Security & Scaling Rules</h5>
+                      <ul>
+                        <li><strong>WebGL Compression:</strong> Draco loaders compress 3D meshes by up to 80% to maintain sub-second page loads.</li>
+                        <li><strong>Safe Token Hosting:</strong> API keys for Groq/OpenAI are proxy-resolved, never leaking to browser bundle distributions.</li>
+                        <li><strong>Real-time Schema Sync:</strong> Database writes automatically sync views across buyers, brokers, and builders via reactive Convex WebSocket pipelines.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* High-Resolution Diagram Modal overlay */}
+                {showFullDiagram && (
+                  <div className="modal-backdrop z-1000" onClick={() => setShowFullDiagram(false)}>
+                    <div className="glass-card arch-diagram-modal" onClick={e => e.stopPropagation()}>
+                      <div className="modal-header">
+                        <h4>System Integration Architecture Diagram</h4>
+                        <button className="close-modal-btn" onClick={() => setShowFullDiagram(false)}><X size={20} /></button>
+                      </div>
+                      <div className="modal-body text-center overflow-auto max-h-75vh">
+                        <a href="/techstack_architecture_diagram.png" target="_blank" rel="noopener noreferrer" title="Click to open image in new tab">
+                          <img 
+                            src="/techstack_architecture_diagram.png" 
+                            alt="Platform Architecture Diagram" 
+                            className="img-fluid arch-large-diagram" 
+                            style={{ maxWidth: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
+                          />
+                        </a>
+                      </div>
+                      <div className="modal-footer flex justify-end gap-2 p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                        <a href="/techstack_architecture_diagram.png" download className="btn btn-gold btn-small">Download Image</a>
+                        <button className="btn btn-outline btn-small" onClick={() => setShowFullDiagram(false)}>Close View</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

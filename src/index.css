@@ -4971,6 +4971,281 @@ h1, h2, h3, h4, h5, h6 {
     min-width: 0;
 }
 
+/* Architecture Dashboard styles */
+.architecture-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.arch-intro-card {
+    padding: 24px;
+    background: rgba(10, 15, 30, 0.7);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: var(--border-radius-lg);
+    backdrop-filter: blur(12px);
+}
+
+.arch-intro-header h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 8px 0;
+}
+
+.arch-split-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 1024px) {
+    .arch-split-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.arch-sim-card, .arch-spec-card {
+    padding: 24px;
+    background: rgba(10, 15, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-lg);
+    backdrop-filter: blur(12px);
+}
+
+.card-header-new h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-accent);
+    margin-bottom: 6px;
+}
+
+.arch-scenario-selectors {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.scenario-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    color: var(--color-text);
+}
+
+.scenario-btn:hover {
+    background: rgba(212, 175, 55, 0.05);
+    border-color: rgba(212, 175, 55, 0.2);
+}
+
+.scenario-btn.active {
+    background: rgba(212, 175, 55, 0.12);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
+}
+
+.scenario-btn strong {
+    font-size: 14px;
+    font-weight: 600;
+    display: block;
+    color: var(--color-text);
+}
+
+.scenario-btn p {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+.arch-sim-visualizer {
+    background: rgba(5, 8, 15, 0.6);
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    margin-top: 15px;
+}
+
+.sim-diagram-canvas {
+    margin-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.sim-layers-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    min-width: 500px;
+}
+
+.sim-layer-node {
+    flex: 1;
+    text-align: center;
+    padding: 12px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-sm);
+    transition: all 0.3s ease;
+}
+
+.sim-layer-node.highlighted {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: var(--color-accent);
+    transform: scale(1.03);
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+}
+
+.sim-layer-node h5 {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--color-text);
+}
+
+.sim-layer-node p {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.sim-flow-arrow {
+    color: rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    transition: all 0.3s ease;
+}
+
+.sim-flow-arrow.active {
+    color: var(--color-accent);
+    animation: bounceRight 1s infinite alternate;
+}
+
+@keyframes bounceRight {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(4px); }
+}
+
+.sim-step-detail-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    padding: 16px;
+}
+
+.sim-step-detail-card h5 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-accent);
+    margin: 8px 0;
+}
+
+.sim-step-detail-card p {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.step-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: var(--color-accent);
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+/* Tech Matrix Table */
+.tech-matrix-table-wrapper {
+    margin: 20px 0;
+    overflow-x: auto;
+}
+
+.tech-matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+.tech-matrix-table th {
+    padding: 12px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.tech-matrix-table td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    line-height: 1.4;
+    color: var(--color-text);
+}
+
+.arch-specs-box {
+    background: rgba(212, 175, 55, 0.04);
+    border: 1px solid rgba(212, 175, 55, 0.12);
+    border-radius: var(--border-radius-md);
+    padding: 16px;
+}
+
+.arch-specs-box h5 {
+    font-size: 14px;
+    color: var(--color-accent);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.arch-specs-box ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.arch-specs-box li {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    margin-bottom: 6px;
+}
+
+/* Large Diagram Modal */
+.arch-diagram-modal {
+    width: 90%;
+    max-width: 1100px;
+    background: rgba(10, 15, 30, 0.95);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+}
+
+.arch-large-diagram {
+    transition: transform 0.2s ease;
+}
+
+.hover-glow-gold:hover {
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.3) !important;
+    background: rgba(212, 175, 55, 0.05) !important;
+}
+
+
 
 
 

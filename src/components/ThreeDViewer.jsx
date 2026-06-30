@@ -40,7 +40,7 @@ export default function ThreeDViewer({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = isNight ? 0.6 : 1.1;
     mount.appendChild(renderer.domElement);
@@ -72,17 +72,17 @@ export default function ThreeDViewer({
     const scene = new THREE.Scene();
     sceneRef.current = scene;
     const bgColor = mode === 'building'
-      ? (isNight ? '#05080f' : '#0f1a2e')
-      : (isNight ? '#020510' : '#1a3a70');
+      ? (isNight ? '#05080f' : '#f1f5f9')
+      : (isNight ? '#020510' : '#e0f2fe');
     scene.background = new THREE.Color(bgColor);
     scene.fog = new THREE.FogExp2(bgColor, mode === 'township' ? 0.0012 : mode === 'building' ? 0.004 : 0.05);
 
     // Lighting
-    const ambient = new THREE.AmbientLight(isNight ? '#0a1030' : '#cce0ff', isNight ? 0.35 : 0.55);
+    const ambient = new THREE.AmbientLight(isNight ? '#0a1030' : '#e0f2fe', isNight ? 0.35 : 1.1);
     scene.add(ambient);
 
     const sunAngle = ((timeOfDay - 6) / 12) * Math.PI;
-    const sun = new THREE.DirectionalLight(isNight ? '#1a2060' : '#fffae6', isNight ? 0.15 : 1.1);
+    const sun = new THREE.DirectionalLight(isNight ? '#1a2060' : '#fffbeb', isNight ? 0.15 : 2.5);
     sun.position.set(Math.cos(sunAngle) * 200, Math.sin(sunAngle) * 200 + 20, 80);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -96,9 +96,9 @@ export default function ThreeDViewer({
 
     // Sky sphere (gradient via hemisphere light)
     const hemi = new THREE.HemisphereLight(
-      isNight ? '#0a0f2a' : '#89c4ff',
-      isNight ? '#0a0a0a' : '#3a5c2a',
-      isNight ? 0.3 : 0.6
+      isNight ? '#0a0f2a' : '#bae6fd',
+      isNight ? '#0a0a0a' : '#4ade80',
+      isNight ? 0.3 : 1.2
     );
     scene.add(hemi);
 
@@ -388,19 +388,19 @@ function HudBtn({ onClick, title, children }) {
 // ── TOWNSHIP ──────────────────────────────────────────────────────────────────
 function buildTownship(scene, isNight, selectedTower, towerBodyMeshesRef, windowMeshesRef, clickableRef) {
   const M = {
-    ground:   mat('#0d2010', { roughness: 0.9, metalness: 0 }),
-    road:     mat('#141428', { roughness: 0.85 }),
-    pavement: mat('#2d3748', { roughness: 0.9 }),
-    garden:   mat('#155a2d', { roughness: 0.9 }),
-    water:    mat('#0369a1', { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.82 }),
-    pool:     mat('#075985', { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.88 }),
-    concrete: mat('#334155', { roughness: 0.9 }),
-    gym:      mat('#1E293B', { roughness: 0.65 }),
+    ground:   mat(isNight ? '#0d2010' : '#2c5e3b', { roughness: 0.9, metalness: 0 }),
+    road:     mat(isNight ? '#141428' : '#475569', { roughness: 0.85 }),
+    pavement: mat(isNight ? '#2d3748' : '#94a3b8', { roughness: 0.9 }),
+    garden:   mat(isNight ? '#155a2d' : '#387a50', { roughness: 0.9 }),
+    water:    mat(isNight ? '#0369a1' : '#38bdf8', { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.82 }),
+    pool:     mat(isNight ? '#075985' : '#0ea5e9', { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.88 }),
+    concrete: mat(isNight ? '#334155' : '#cbd5e1', { roughness: 0.9 }),
+    gym:      mat(isNight ? '#1E293B' : '#64748b', { roughness: 0.65 }),
     gold:     mat('#D4AF37', { metalness: 0.85, roughness: 0.15 }),
-    leaf:     mat(isNight ? '#0c3318' : '#166534', { roughness: 0.92 }),
+    leaf:     mat(isNight ? '#0c3318' : '#22c55e', { roughness: 0.92 }),
     trunk:    mat('#5c4033', { roughness: 0.95 }),
     winLit:   () => new THREE.MeshStandardMaterial({ color: '#FFE082', emissive: '#FFE082', emissiveIntensity: 0.7, roughness: 0.4 }),
-    winDark:  mat('#0a1628', { roughness: 0.5 }),
+    winDark:  mat(isNight ? '#0a1628' : '#64748b', { roughness: 0.5 }),
   };
 
   // Ground
@@ -532,7 +532,7 @@ function buildTownship(scene, isNight, selectedTower, towerBodyMeshesRef, window
 
     // Podium
     const podium = new THREE.Mesh(new THREE.BoxGeometry(w + 6, 2.5, d + 6),
-      mat('#0F172A', { roughness: 0.6 }));
+      mat(isNight ? '#0F172A' : '#475569', { roughness: 0.6 }));
     podium.position.y = 1.25;
     podium.castShadow = true;
     podium.receiveShadow = true;
@@ -540,7 +540,7 @@ function buildTownship(scene, isNight, selectedTower, towerBodyMeshesRef, window
 
     // Body segments (slight taper per floor segment for visual interest)
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: '#1a2744',
+      color: isNight ? '#1a2744' : (sel ? '#f8fafc' : '#cbd5e1'),
       roughness: 0.25,
       metalness: 0.45,
       emissive: new THREE.Color(sel ? '#D4AF37' : '#000000'),
@@ -712,7 +712,7 @@ function buildInterior(scene, style, isNight) {
   ibox(0.9, 0.65, 0.18,  0.9, 0.7, 2.12, cushMat);
 
   // Coffee table
-  const tableMat = style === 'Luxury' ? goldMat : mat('#37415155', { roughness: 0.3, metalness: 0.35 });
+  const tableMat = style === 'Luxury' ? goldMat : mat('#374151', { roughness: 0.3, metalness: 0.35, transparent: true, opacity: 0.33 });
   ibox(1.6, 0.08, 0.85, 0, 0.45, 0.45, tableMat);
   [[-0.7,-0.36],[0.7,-0.36],[-0.7,0.36],[0.7,0.36]].forEach(([lx, lz]) => {
     ibox(0.07, 0.45, 0.07, lx, 0.225, lz + 0.45, mat('#1E293B', { roughness: 0.9 }));
