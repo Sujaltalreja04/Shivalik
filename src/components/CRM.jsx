@@ -335,6 +335,7 @@ export default function CRM() {
   const agentGender = "male";
   const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [showEmailSim, setShowEmailSim] = useState(false);
+  const [dispatchActiveTab, setDispatchActiveTab] = useState("whatsapp");
   
   // Audio Speech Synthesis reference
   const speechRef = useRef(null);
@@ -2214,6 +2215,7 @@ export default function CRM() {
                       setVisibleTranscript([]);
                       setShowWhatsAppSim(false);
                       setShowEmailSim(false);
+                      setDispatchActiveTab("whatsapp");
                       
                       const selected = leads.find(l => l._id === activeAutoLeadId);
                       
@@ -2419,7 +2421,7 @@ export default function CRM() {
             </div>
           ) : (
             /* Active Calling Console View */
-            <div className={`dialer-view glass-card ${showWhatsAppSim ? 'max-w-5xl' : 'max-w-4xl'} mx-auto transition-all duration-500`} style={{ transition: 'max-width 0.5s ease-in-out' }}>
+            <div className={`dialer-view glass-card ${(callStatus === "Connected" || callStatus === "Completed") ? 'max-w-5xl' : 'max-w-4xl'} mx-auto transition-all duration-500`} style={{ transition: 'max-width 0.5s ease-in-out' }}>
               <style>{`
                 @keyframes slideInRight {
                   from { transform: translateX(40px); opacity: 0; }
@@ -2590,149 +2592,342 @@ export default function CRM() {
                   )}
                 </div>
 
-                {/* Simulated Smartphone Column */}
-                {showWhatsAppSim && (
-                  <div className="flex justify-center items-center animate-slide-in-right md:border-l md:pl-6" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-                    <div className="smartphone-bezel" style={{
-                      width: '280px',
-                      height: '520px',
-                      background: '#111827',
-                      borderRadius: '36px',
-                      border: '8px solid #374151',
-                      boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), 0 0 20px rgba(212,175,55,0.2)',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}>
-                      {/* Speaker Notch */}
-                      <div style={{
-                        width: '110px',
-                        height: '18px',
-                        background: '#374151',
-                        borderRadius: '0 0 12px 12px',
-                        position: 'absolute',
-                        top: 0,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        zIndex: 10
-                      }}></div>
-
-                      {/* WhatsApp Chat Header */}
-                      <div style={{
-                        background: '#075E54',
-                        color: '#fff',
-                        padding: '24px 12px 10px 12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                      }}>
-                        <span style={{ fontSize: '14px', marginRight: '2px', cursor: 'pointer' }}>←</span>
-                        <div style={{
-                          width: '30px',
-                          height: '30px',
-                          borderRadius: '50%',
-                          background: 'var(--color-accent, #D4AF37)',
-                          color: '#111',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '11px',
-                          fontWeight: 'bold'
-                        }}>SG</div>
-                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Shivalik Group Official</div>
-                          <div style={{ fontSize: '9px', opacity: 0.8 }}>Online (Business Account)</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px', opacity: 0.9, fontSize: '12px' }}>
-                          <span>📞</span>
-                          <span>⋮</span>
-                        </div>
+                {/* Simulated Real-time Dispatches Monitor Column */}
+                {(callStatus === "Connected" || callStatus === "Completed") && (
+                  <div className="flex justify-center items-center animate-slide-in-right md:border-l md:pl-6" style={{ borderColor: 'rgba(255,255,255,0.08)', minWidth: '300px' }}>
+                    <div className="flex flex-col gap-4">
+                      {/* Tab Navigation Segment */}
+                      <div className="flex bg-glass-tertiary p-1 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <button 
+                          className={`flex-1 py-1.5 px-3 rounded-md font-small transition-all flex align-center justify-center gap-1.5 ${dispatchActiveTab === "whatsapp" ? 'bg-gold text-dark font-bold' : 'text-muted hover:text-white'}`}
+                          onClick={() => setDispatchActiveTab("whatsapp")}
+                          style={{ border: 'none', outline: 'none', cursor: 'pointer' }}
+                        >
+                          <Send size={12} /> WhatsApp
+                        </button>
+                        <button 
+                          className={`flex-1 py-1.5 px-3 rounded-md font-small transition-all flex align-center justify-center gap-1.5 ${dispatchActiveTab === "email" ? 'bg-gold text-dark font-bold' : 'text-muted hover:text-white'}`}
+                          onClick={() => setDispatchActiveTab("email")}
+                          style={{ border: 'none', outline: 'none', cursor: 'pointer' }}
+                        >
+                          <Mail size={12} /> Email Inbox
+                        </button>
                       </div>
 
-                      {/* Chat Wallpaper Background */}
-                      <div style={{
-                        flex: 1,
-                        background: '#efeae2',
-                        backgroundImage: 'radial-gradient(#dfdcd6 1px, transparent 0)',
-                        backgroundSize: '16px 16px',
-                        padding: '12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'flex-end',
-                        gap: '10px',
-                        overflowY: 'auto'
-                      }}>
-                        {/* System Timestamp */}
-                        <div style={{
-                          alignSelf: 'center',
-                          background: 'rgba(255, 255, 255, 0.75)',
-                          color: '#54656f',
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '9px',
-                          boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
-                          marginBottom: '10px'
-                        }}>
-                          TODAY
-                        </div>
-
-                        {/* Received Message */}
-                        <div style={{
-                          alignSelf: 'flex-start',
-                          background: '#fff',
-                          padding: '6px 10px',
-                          borderRadius: '0 8px 8px 8px',
-                          maxWidth: '85%',
-                          fontSize: '11px',
-                          boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
-                          color: '#111',
-                          textAlign: 'left'
-                        }}>
-                          Hi, I would like to get details of your projects.
-                          <div style={{ fontSize: '8px', color: '#667781', textAlign: 'right', marginTop: '2px' }}>11:34 AM</div>
-                        </div>
-
-                        {/* Sent Brochure Message Attachment */}
-                        <div className="animate-slide-up-bubble" style={{
-                          alignSelf: 'flex-end',
-                          background: '#d9fdd3',
-                          padding: '6px',
-                          borderRadius: '8px 0 8px 8px',
-                          maxWidth: '85%',
-                          boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+                      {dispatchActiveTab === "whatsapp" ? (
+                        /* WhatsApp Smartphone Mockup */
+                        <div className="smartphone-bezel" style={{
+                          width: '280px',
+                          height: '460px',
+                          background: '#111827',
+                          borderRadius: '36px',
+                          border: '8px solid #374151',
+                          boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px rgba(212,175,55,0.15)',
+                          position: 'relative',
+                          overflow: 'hidden',
                           display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px'
+                          flexDirection: 'column'
                         }}>
-                          {/* File attachment preview */}
+                          {/* Speaker Notch */}
                           <div style={{
-                            background: '#c7ebb8',
-                            borderRadius: '6px',
-                            padding: '8px',
+                            width: '100px',
+                            height: '16px',
+                            background: '#374151',
+                            borderRadius: '0 0 10px 10px',
+                            position: 'absolute',
+                            top: 0,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 10
+                          }}></div>
+
+                          {/* WhatsApp Chat Header */}
+                          <div style={{
+                            background: '#075E54',
+                            color: '#fff',
+                            padding: '20px 12px 10px 12px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            borderLeft: '4px solid #b33939'
+                            gap: '6px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                           }}>
-                            <div style={{ color: '#b33939', fontSize: '18px' }}>📄</div>
+                            <span style={{ fontSize: '12px', marginRight: '1px' }}>←</span>
+                            <div style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '50%',
+                              background: 'var(--color-accent, #D4AF37)',
+                              color: '#111',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '10px',
+                              fontWeight: 'bold'
+                            }}>SG</div>
                             <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {leads.find(l => l._id === activeAutoLeadId)?.project}_RERA_Brochure.pdf
-                              </div>
-                              <div style={{ fontSize: '8px', color: '#667781' }}>4.2 MB • PDF</div>
+                              <div style={{ fontSize: '11px', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Shivalik Group Official</div>
+                              <div style={{ fontSize: '8px', opacity: 0.8 }}>Online (Business Account)</div>
                             </div>
                           </div>
-                          <div style={{ fontSize: '11px', color: '#111', padding: '0 4px', textAlign: 'left' }}>
-                            Hello {leads.find(l => l._id === activeAutoLeadId)?.name}, here is the brochure for {leads.find(l => l._id === activeAutoLeadId)?.project} project as requested.
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
-                            <span style={{ fontSize: '8px', color: '#667781' }}>11:35 AM</span>
-                            <span style={{ color: '#53bdeb', fontSize: '10px' }}>✓✓</span>
+
+                          {/* Chat Wallpaper Background */}
+                          <div style={{
+                            flex: 1,
+                            background: '#efeae2',
+                            backgroundImage: 'radial-gradient(#dfdcd6 1px, transparent 0)',
+                            backgroundSize: '16px 16px',
+                            padding: '10px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-end',
+                            gap: '8px',
+                            overflowY: 'auto'
+                          }}>
+                            <div style={{
+                              alignSelf: 'center',
+                              background: 'rgba(255, 255, 255, 0.75)',
+                              color: '#54656f',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '8px',
+                              boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
+                              marginBottom: '6px'
+                            }}>
+                              TODAY
+                            </div>
+
+                            {/* Client Request */}
+                            <div style={{
+                              alignSelf: 'flex-start',
+                              background: '#fff',
+                              padding: '6px 8px',
+                              borderRadius: '0 8px 8px 8px',
+                              maxWidth: '85%',
+                              fontSize: '10px',
+                              boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+                              color: '#111',
+                              textAlign: 'left'
+                            }}>
+                              Hi, I would like to get details of your projects.
+                              <div style={{ fontSize: '7px', color: '#667781', textAlign: 'right', marginTop: '2px' }}>11:34 AM</div>
+                            </div>
+
+                            {/* Sent Brochure Message Bubble */}
+                            {showWhatsAppSim ? (
+                              <div className="animate-slide-up-bubble" style={{
+                                alignSelf: 'flex-end',
+                                background: '#d9fdd3',
+                                padding: '5px',
+                                borderRadius: '8px 0 8px 8px',
+                                maxWidth: '85%',
+                                boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '3px'
+                              }}>
+                                <div style={{
+                                  background: '#c7ebb8',
+                                  borderRadius: '5px',
+                                  padding: '6px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  borderLeft: '3px solid #b33939'
+                                }}>
+                                  <div style={{ color: '#b33939', fontSize: '15px' }}>📄</div>
+                                  <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                    <div style={{ fontSize: '9px', fontWeight: 'bold', color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {leads.find(l => l._id === activeAutoLeadId)?.project}_site_brochure.pdf
+                                    </div>
+                                    <div style={{ fontSize: '7px', color: '#667781' }}>4.2 MB • PDF</div>
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: '10px', color: '#111', padding: '0 2px', textAlign: 'left' }}>
+                                  Hello {leads.find(l => l._id === activeAutoLeadId)?.name}, here is the brochure for {leads.find(l => l._id === activeAutoLeadId)?.project} project as requested.
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px', marginTop: '1px' }}>
+                                  <span style={{ fontSize: '7px', color: '#667781' }}>11:35 AM</span>
+                                  <span style={{ color: '#53bdeb', fontSize: '9px' }}>✓✓</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{
+                                display: 'flex',
+                                alignSelf: 'stretch',
+                                background: 'rgba(255,255,255,0.7)',
+                                padding: '10px',
+                                borderRadius: '8px',
+                                fontSize: '9px',
+                                color: '#4b5563',
+                                textAlign: 'left',
+                                gap: '8px',
+                                border: '1px dashed rgba(0,0,0,0.1)'
+                              }}>
+                                <span style={{ animation: 'pulse 1s infinite' }}>⏳</span>
+                                <div>
+                                  <strong>Waiting for agent trigger...</strong>
+                                  <div style={{ fontSize: '8px', opacity: 0.8, marginTop: '2px' }}>Brochure will dispatch automatically.</div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        /* High-fidelity Email Client/Inbox Preview */
+                        <div className="email-client-box animate-fade-in" style={{
+                          width: '280px',
+                          height: '460px',
+                          background: '#ffffff',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px rgba(59,130,246,0.15)',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          color: '#333333'
+                        }}>
+                          {/* Browser Address Bar */}
+                          <div style={{
+                            background: '#f1f5f9',
+                            padding: '8px 12px',
+                            borderBottom: '1px solid #e2e8f0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }}></span>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#eab308', display: 'inline-block' }}></span>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
+                            </div>
+                            <div style={{
+                              flex: 1,
+                              background: '#ffffff',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              fontSize: '8px',
+                              padding: '2px 6px',
+                              textAlign: 'left',
+                              color: '#64748b',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              https://mail.google.com/mail/u/0/#inbox
+                            </div>
+                          </div>
+
+                          {/* Email Headers */}
+                          <div style={{
+                            padding: '10px 12px',
+                            borderBottom: '1px solid #e2e8f0',
+                            textAlign: 'left',
+                            fontSize: '10px',
+                            background: '#fafafa'
+                          }}>
+                            <div style={{ marginBottom: '3px' }}>
+                              <strong style={{ color: '#64748b' }}>From:</strong> sales@shivalikgroup.com
+                            </div>
+                            <div style={{ marginBottom: '3px' }}>
+                              <strong style={{ color: '#64748b' }}>To:</strong> {leads.find(l => l._id === activeAutoLeadId)?.email || "client@domain.com"}
+                            </div>
+                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <strong style={{ color: '#64748b' }}>Subject:</strong> Brochure & Site Floor Plans - Shivalik Group
+                            </div>
+                          </div>
+
+                          {/* Email Content Body */}
+                          <div style={{
+                            flex: 1,
+                            padding: '12px',
+                            overflowY: 'auto',
+                            fontSize: '10px',
+                            lineHeight: '1.4',
+                            textAlign: 'left',
+                            background: '#ffffff'
+                          }}>
+                            {showEmailSim ? (
+                              <div className="animate-slide-up-bubble">
+                                {/* Shivalik Brand Header */}
+                                <div style={{
+                                  borderBottom: '2px solid #D4AF37',
+                                  pb: '6px',
+                                  marginBottom: '10px',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
+                                }}>
+                                  <strong style={{ color: '#D4AF37', letterSpacing: '1px', fontSize: '11px' }}>SHIVALIK GROUP</strong>
+                                  <span style={{ fontSize: '8px', color: '#94a3b8', fontStyle: 'italic' }}>Verified Sender</span>
+                                </div>
+
+                                <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>
+                                  Dear {leads.find(l => l._id === activeAutoLeadId)?.name || "Valued Lead"},
+                                </p>
+
+                                <p style={{ margin: '0 0 8px 0', color: '#475569' }}>
+                                  Thank you for taking the time to speak with our AI Outreach Specialist today regarding <strong>{leads.find(l => l._id === activeAutoLeadId)?.project || "our premium properties"}</strong>.
+                                </p>
+
+                                <p style={{ margin: '0 0 10px 0', color: '#475569' }}>
+                                  As requested, we have compiled the official site plans and structure details. You can download the complete site brochure directly using the button below:
+                                </p>
+
+                                {/* Action Download Button */}
+                                <div style={{ textAlign: 'center', margin: '14px 0' }}>
+                                  <a 
+                                    href="#"
+                                    onClick={(e) => e.preventDefault()}
+                                    style={{
+                                      background: '#D4AF37',
+                                      color: '#111111',
+                                      padding: '6px 14px',
+                                      borderRadius: '4px',
+                                      textDecoration: 'none',
+                                      fontWeight: 'bold',
+                                      fontSize: '9px',
+                                      boxShadow: '0 2px 4px rgba(212,175,55,0.2)',
+                                      display: 'inline-block'
+                                    }}
+                                  >
+                                    Download Site Brochure (PDF)
+                                  </a>
+                                </div>
+
+                                <p style={{ margin: '0 0 4px 0', color: '#64748b', fontSize: '9px' }}>
+                                  Sincerely,
+                                </p>
+                                <strong style={{ color: '#1e293b', fontSize: '9px' }}>
+                                  Sales CRM Coordinator
+                                </strong>
+                                <div style={{ color: '#94a3b8', fontSize: '8px' }}>
+                                  Shivalik Group, Ahmedabad
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{
+                                display: 'flex',
+                                alignSelf: 'stretch',
+                                background: 'rgba(243,244,246,0.8)',
+                                padding: '10px',
+                                borderRadius: '8px',
+                                fontSize: '9px',
+                                color: '#4b5563',
+                                textAlign: 'left',
+                                gap: '8px',
+                                border: '1px dashed rgba(0,0,0,0.1)',
+                                marginTop: '30px'
+                              }}>
+                                <span style={{ animation: 'pulse 1s infinite' }}>⏳</span>
+                                <div>
+                                  <strong>Waiting for SMTP release...</strong>
+                                  <div style={{ fontSize: '8px', opacity: 0.8, marginTop: '2px' }}>Email template will load dynamically.</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
