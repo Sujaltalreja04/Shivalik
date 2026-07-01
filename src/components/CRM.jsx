@@ -2554,15 +2554,95 @@ export default function CRM() {
                   {callStatus === "Completed" && (
                     <div className="glass-card p-4 border-accent bg-glass-tertiary text-left mt-3">
                       <h4 className="text-green mb-3 flex align-center gap-2"><CheckCircle size={18}/> CRM Pipeline Automation Triggered Successfully</h4>
-                      <div className="grid grid-cols-2 gap-4 font-small text-muted mb-4">
-                        <div>
-                          <p className="mb-2">🟢 <strong>Call Log Saved:</strong> Recorded duration 80 seconds with sentiment <strong>"Interested"</strong>.</p>
-                          <p className="mb-2">🟢 <strong>Kanban Stage Updated:</strong> Lead advanced to stage <strong>"Contacted"</strong>.</p>
-                          <p className="mb-2">🟢 <strong>Interaction Lead Score:</strong> Fit Score increased by 15 points to <strong>90%</strong>.</p>
+                      
+                      <div className="flex flex-col md:flex-row gap-6 mb-4">
+                        {/* Sentiment Dial Gauge */}
+                        <div className="flex flex-col items-center justify-center bg-glass p-3 rounded-lg border" style={{ borderColor: 'rgba(255,255,255,0.05)', minWidth: '150px' }}>
+                          <span className="text-muted font-small mb-2" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '9px' }}>Sentiment Analysis</span>
+                          
+                          {/* Radial Progress Gauge SVG */}
+                          <div style={{ position: 'relative', width: '80px', height: '80px' }}>
+                            <svg width="80" height="80" viewBox="0 0 80 80">
+                              {/* Background track */}
+                              <circle cx="40" cy="40" r="34" fill="transparent" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                              {/* Progress bar (gold) */}
+                              <circle cx="40" cy="40" r="34" fill="transparent" stroke="url(#goldGradient)" strokeWidth="6" 
+                                strokeDasharray={2 * Math.PI * 34} 
+                                strokeDashoffset={2 * Math.PI * 34 * (1 - 0.94)} 
+                                strokeLinecap="round"
+                                transform="rotate(-90 40 40)"
+                              />
+                              <defs>
+                                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                  <stop offset="0%" stopColor="#FFE082" />
+                                  <stop offset="100%" stopColor="#D4AF37" />
+                                </linearGradient>
+                              </defs>
+                            </svg>
+                            {/* Score Text */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#D4AF37' }}>94%</span>
+                              <span style={{ fontSize: '8px', color: '#66bb6a', fontWeight: 'bold', textTransform: 'uppercase' }}>Hot Lead</span>
+                            </div>
+                          </div>
+                          
+                          <p className="text-muted font-small mt-2 text-center" style={{ fontSize: '9px' }}>
+                            Strong intent detected for a {leads.find(l => l._id === activeAutoLeadId)?.bhkPreference || '3 BHK'} layout.
+                          </p>
                         </div>
-                        <div>
-                          <p className="mb-2">🟢 <strong>Followup Call Logged:</strong> Scheduled follow-up for tomorrow at 11:00 AM in Convex DB.</p>
-                          <p className="mb-2">🟢 <strong>PDF Brochure Sent:</strong> RERA brochure for project <strong>{leads.find(l => l._id === activeAutoLeadId)?.project}</strong> dispatched.</p>
+
+                        {/* Event timeline */}
+                        <div className="flex-1">
+                          <span className="text-muted font-small block mb-3" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '9px' }}>Automated Pipeline Execution Timeline</span>
+                          
+                          <div className="flex flex-col gap-3 font-small">
+                            {/* Timeline Item 1 */}
+                            <div className="flex gap-2 text-left">
+                              <div className="flex flex-col items-center">
+                                <span className="p-1 rounded-circle bg-green flex align-center justify-center" style={{ color: '#fff', width: '18px', height: '18px', fontSize: '9px' }}>✓</span>
+                                <div style={{ width: '2px', flex: 1, background: 'rgba(34,197,94,0.3)', margin: '2px 0' }}></div>
+                              </div>
+                              <div>
+                                <strong className="text-white" style={{ fontSize: '11px' }}>AI Call Nurturing Outbound Completed</strong>
+                                <div className="text-muted" style={{ fontSize: '9px' }}>Outbound voice sequence finished (sentiment verified).</div>
+                              </div>
+                            </div>
+
+                            {/* Timeline Item 2 */}
+                            <div className="flex gap-2 text-left">
+                              <div className="flex flex-col items-center">
+                                <span className="p-1 rounded-circle bg-green flex align-center justify-center" style={{ color: '#fff', width: '18px', height: '18px', fontSize: '9px' }}>✓</span>
+                                <div style={{ width: '2px', flex: 1, background: 'rgba(34,197,94,0.3)', margin: '2px 0' }}></div>
+                              </div>
+                              <div>
+                                <strong className="text-white" style={{ fontSize: '11px' }}>WhatsApp Instant site brochure Dispatched</strong>
+                                <div className="text-muted" style={{ fontSize: '9px' }}>Delivered PDF attachment to {leads.find(l => l._id === activeAutoLeadId)?.phone}.</div>
+                              </div>
+                            </div>
+
+                            {/* Timeline Item 3 */}
+                            <div className="flex gap-2 text-left">
+                              <div className="flex flex-col items-center">
+                                <span className="p-1 rounded-circle bg-green flex align-center justify-center" style={{ color: '#fff', width: '18px', height: '18px', fontSize: '9px' }}>✓</span>
+                                <div style={{ width: '2px', flex: 1, background: 'rgba(34,197,94,0.3)', margin: '2px 0' }}></div>
+                              </div>
+                              <div>
+                                <strong className="text-white" style={{ fontSize: '11px' }}>Signed SMTP Email Invoice Dispatched</strong>
+                                <div className="text-muted" style={{ fontSize: '9px' }}>Sent to {leads.find(l => l._id === activeAutoLeadId)?.email}.</div>
+                              </div>
+                            </div>
+
+                            {/* Timeline Item 4 */}
+                            <div className="flex gap-2 text-left">
+                              <div className="flex flex-col items-center">
+                                <span className="p-1 rounded-circle bg-gold flex align-center justify-center" style={{ color: '#111', width: '18px', height: '18px', fontSize: '9px', fontWeight: 'bold' }}>➔</span>
+                              </div>
+                              <div>
+                                <strong className="text-gold" style={{ fontSize: '11px' }}>Promoted to stage 'Contacted'</strong>
+                                <div className="text-muted" style={{ fontSize: '9px' }}>Lead score increased to {Math.min((leads.find(l => l._id === activeAutoLeadId)?.score || 75) + 15, 95)}% (fit updated).</div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
