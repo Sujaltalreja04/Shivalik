@@ -333,6 +333,8 @@ export default function CRM() {
   const [selectedCallHistory, setSelectedCallHistory] = useState(null);
   const [automationLang, setAutomationLang] = useState("en"); // en, hi, gu
   const agentGender = "male";
+  const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
+  const [showEmailSim, setShowEmailSim] = useState(false);
   
   // Audio Speech Synthesis reference
   const speechRef = useRef(null);
@@ -852,6 +854,17 @@ export default function CRM() {
 
           // Speak the line and WAIT for it to fully finish before next
           await speakLine(line, i);
+
+          if (i === 6) {
+            setShowWhatsAppSim(true);
+            setShowEmailSim(true);
+            setTimeout(() => {
+              setShowWhatsAppSim(false);
+            }, 6000);
+            setTimeout(() => {
+              setShowEmailSim(false);
+            }, 6000);
+          }
 
           if (cancelled) break;
 
@@ -2199,6 +2212,8 @@ export default function CRM() {
                       setCallStatus("Dialing");
                       setIsCalling(true);
                       setVisibleTranscript([]);
+                      setShowWhatsAppSim(false);
+                      setShowEmailSim(false);
                       
                       const selected = leads.find(l => l._id === activeAutoLeadId);
                       
@@ -2466,6 +2481,45 @@ export default function CRM() {
                   <div className="wave-bar"></div>
                   <div className="wave-bar"></div>
                   <div className="wave-bar"></div>
+                </div>
+              )}
+
+              {/* WhatsApp and Email Real-time Dispatches Simulation */}
+              {callStatus === "Connected" && (showWhatsAppSim || showEmailSim) && (
+                <div className="flex gap-4 justify-between my-2 animate-fade-in" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+                  {showWhatsAppSim && (
+                    <div className="flex-1 glass-card p-3 text-left flex gap-3 align-center" style={{ background: 'linear-gradient(135deg, rgba(7,94,84,0.15), rgba(18,140,126,0.1))', border: '1px solid rgba(37,211,102,0.3)', borderRadius: '8px' }}>
+                      <div className="p-2 rounded-circle" style={{ background: '#25D366', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Send size={16} />
+                      </div>
+                      <div className="flex-1 overflow-hidden" style={{ minWidth: 0 }}>
+                        <div className="flex justify-between align-center">
+                          <strong style={{ color: '#25D366', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>WhatsApp Dispatcher</strong>
+                          <span style={{ fontSize: '9px', background: 'rgba(37,211,102,0.15)', color: '#25d366', padding: '1px 5px', borderRadius: '4px' }}>Delivered</span>
+                        </div>
+                        <p style={{ fontSize: '10px', color: '#e2e8f0', margin: '2px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          Sent to {leads.find(l => l._id === activeAutoLeadId)?.phone || "+91 99XXX XX44"}: PDF Brochure & Floor Plans Link.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {showEmailSim && (
+                    <div className="flex-1 glass-card p-3 text-left flex gap-3 align-center" style={{ background: 'linear-gradient(135deg, rgba(30,58,138,0.15), rgba(59,130,246,0.1))', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px' }}>
+                      <div className="p-2 rounded-circle" style={{ background: '#3B82F6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Mail size={16} />
+                      </div>
+                      <div className="flex-1 overflow-hidden" style={{ minWidth: 0 }}>
+                        <div className="flex justify-between align-center">
+                          <strong style={{ color: '#3B82F6', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email SMTP Server</strong>
+                          <span style={{ fontSize: '9px', background: 'rgba(59,130,246,0.15)', color: '#3B82F6', padding: '1px 5px', borderRadius: '4px' }}>Sent & Signed</span>
+                        </div>
+                        <p style={{ fontSize: '10px', color: '#e2e8f0', margin: '2px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          Sent to {leads.find(l => l._id === activeAutoLeadId)?.email || "client@domain.com"}: Brochure & RERA attachments.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
