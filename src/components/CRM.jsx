@@ -2419,93 +2419,94 @@ export default function CRM() {
             </div>
           ) : (
             /* Active Calling Console View */
-            <div className="dialer-view glass-card max-w-4xl mx-auto flex flex-col gap-4">
-              <div className="flex justify-between align-center border-bottom pb-2">
-                <div className="flex align-center gap-2">
-                  <span className="ai-badge"><Sparkles size={12}/> AI Calling Agent Active</span>
-                  <span className="text-muted font-small">Agent Ref: Shivalik Voice CRM-V1</span>
-                  <span style={{ fontSize: '10px', padding: '2px 7px', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '6px', color: '#a5b4fc', fontWeight: 600, letterSpacing: '0.3px' }}>
-                    🎙 Sarvam AI TTS
-                  </span>
-                </div>
-                <div className="flex align-center gap-3">
-                  <button 
-                    className="btn btn-outline btn-small flex align-center gap-1"
-                    onClick={() => setIsMuted(!isMuted)}
-                  >
-                    {isMuted ? <VolumeX size={14} className="text-red" /> : <Volume2 size={14} className="text-green" />}
-                    {isMuted ? "Unmute Voice" : "Mute Voice"}
-                  </button>
-                  <button 
-                    className="btn btn-outline btn-small text-red flex align-center gap-1"
-                    onClick={() => {
-                      setIsCalling(false);
-                      setCallStatus("Idle");
-                      if (sarvamAudioRef.current) {
-                        sarvamAudioRef.current.pause();
-                        sarvamAudioRef.current = null;
-                      }
-                      if (window.speechSynthesis) {
-                        window.speechSynthesis.cancel();
-                      }
-                    }}
-                  >
-                    <PhoneOff size={14} /> Hang Up
-                  </button>
-                </div>
-              </div>
+            <div className={`dialer-view glass-card ${showWhatsAppSim ? 'max-w-5xl' : 'max-w-4xl'} mx-auto transition-all duration-500`} style={{ transition: 'max-width 0.5s ease-in-out' }}>
+              <style>{`
+                @keyframes slideInRight {
+                  from { transform: translateX(40px); opacity: 0; }
+                  to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideUp {
+                  from { transform: translateY(20px); opacity: 0; }
+                  to { transform: translateY(0); opacity: 1; }
+                }
+                .animate-slide-in-right {
+                  animation: slideInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+                .animate-slide-up-bubble {
+                  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+              `}</style>
 
-              {/* Pulse Dialer Visualizer */}
-              <div className="my-3">
-                <div className="pulse-circle">
-                  <Phone size={36} className="text-gold animate-pulse" />
-                </div>
-                <h4 className="mt-2 text-gold">
-                  {callStatus === "Dialing" && "Dialing Customer..."}
-                  {callStatus === "Ringing" && "Ringing (+91 99XXXX XX44)..."}
-                  {callStatus === "Connected" && "Connected (AI Agent Nurturing...)"}
-                  {callStatus === "Completed" && "Call Sequence Finished!"}
-                </h4>
-                <p className="text-muted font-small mt-1">
-                  Target Lead: <strong>{leads.find(l => l._id === activeAutoLeadId)?.name}</strong> | Project: <strong>{leads.find(l => l._id === activeAutoLeadId)?.project}</strong>
-                </p>
-              </div>
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Main Call Console Column */}
+                <div className="flex-1 flex flex-col gap-4">
+                  <div className="flex justify-between align-center border-bottom pb-2">
+                    <div className="flex align-center gap-2">
+                      <span className="ai-badge"><Sparkles size={12}/> AI Calling Agent Active</span>
+                      <span className="text-muted font-small">Agent Ref: Shivalik Voice CRM-V1</span>
+                      <span style={{ fontSize: '10px', padding: '2px 7px', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '6px', color: '#a5b4fc', fontWeight: 600, letterSpacing: '0.3px' }}>
+                        🎙 Sarvam AI TTS
+                      </span>
+                    </div>
+                    <div className="flex align-center gap-3">
+                      <button 
+                        className="btn btn-outline btn-small flex align-center gap-1"
+                        onClick={() => setIsMuted(!isMuted)}
+                      >
+                        {isMuted ? <VolumeX size={14} className="text-red" /> : <Volume2 size={14} className="text-green" />}
+                        {isMuted ? "Unmute Voice" : "Mute Voice"}
+                      </button>
+                      <button 
+                        className="btn btn-outline btn-small text-red flex align-center gap-1"
+                        onClick={() => {
+                          setIsCalling(false);
+                          setCallStatus("Idle");
+                          if (sarvamAudioRef.current) {
+                            sarvamAudioRef.current.pause();
+                            sarvamAudioRef.current = null;
+                          }
+                          if (window.speechSynthesis) {
+                            window.speechSynthesis.cancel();
+                          }
+                        }}
+                      >
+                        <PhoneOff size={14} /> Hang Up
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Sound wave visualizer (only when Connected and speaking) */}
-              {callStatus === "Connected" && (
-                <div className="wave-container">
-                  <div className="wave-bar"></div>
-                  <div className="wave-bar"></div>
-                  <div className="wave-bar"></div>
-                  <div className="wave-bar"></div>
-                  <div className="wave-bar"></div>
-                  <div className="wave-bar"></div>
-                  <div className="wave-bar"></div>
-                </div>
-              )}
+                  {/* Pulse Dialer Visualizer */}
+                  <div className="my-3">
+                    <div className="pulse-circle">
+                      <Phone size={36} className="text-gold animate-pulse" />
+                    </div>
+                    <h4 className="mt-2 text-gold">
+                      {callStatus === "Dialing" && "Dialing Customer..."}
+                      {callStatus === "Ringing" && "Ringing (+91 99XXXX XX44)..."}
+                      {callStatus === "Connected" && "Connected (AI Agent Nurturing...)"}
+                      {callStatus === "Completed" && "Call Sequence Finished!"}
+                    </h4>
+                    <p className="text-muted font-small mt-1">
+                      Target Lead: <strong>{leads.find(l => l._id === activeAutoLeadId)?.name}</strong> | Project: <strong>{leads.find(l => l._id === activeAutoLeadId)?.project}</strong>
+                    </p>
+                  </div>
 
-              {/* WhatsApp and Email Real-time Dispatches Simulation */}
-              {callStatus === "Connected" && (showWhatsAppSim || showEmailSim) && (
-                <div className="flex gap-4 justify-between my-2 animate-fade-in" style={{ animation: 'fadeIn 0.5s ease-out' }}>
-                  {showWhatsAppSim && (
-                    <div className="flex-1 glass-card p-3 text-left flex gap-3 align-center" style={{ background: 'linear-gradient(135deg, rgba(7,94,84,0.15), rgba(18,140,126,0.1))', border: '1px solid rgba(37,211,102,0.3)', borderRadius: '8px' }}>
-                      <div className="p-2 rounded-circle" style={{ background: '#25D366', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Send size={16} />
-                      </div>
-                      <div className="flex-1 overflow-hidden" style={{ minWidth: 0 }}>
-                        <div className="flex justify-between align-center">
-                          <strong style={{ color: '#25D366', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>WhatsApp Dispatcher</strong>
-                          <span style={{ fontSize: '9px', background: 'rgba(37,211,102,0.15)', color: '#25d366', padding: '1px 5px', borderRadius: '4px' }}>Delivered</span>
-                        </div>
-                        <p style={{ fontSize: '10px', color: '#e2e8f0', margin: '2px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                          Sent to {leads.find(l => l._id === activeAutoLeadId)?.phone || "+91 99XXX XX44"}: PDF Brochure & Floor Plans Link.
-                        </p>
-                      </div>
+                  {/* Sound wave visualizer (only when Connected and speaking) */}
+                  {callStatus === "Connected" && (
+                    <div className="wave-container">
+                      <div className="wave-bar"></div>
+                      <div className="wave-bar"></div>
+                      <div className="wave-bar"></div>
+                      <div className="wave-bar"></div>
+                      <div className="wave-bar"></div>
+                      <div className="wave-bar"></div>
+                      <div className="wave-bar"></div>
                     </div>
                   )}
 
-                  {showEmailSim && (
-                    <div className="flex-1 glass-card p-3 text-left flex gap-3 align-center" style={{ background: 'linear-gradient(135deg, rgba(30,58,138,0.15), rgba(59,130,246,0.1))', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px' }}>
+                  {/* Live Email SMTP Server notification overlay */}
+                  {callStatus === "Connected" && showEmailSim && (
+                    <div className="glass-card p-3 text-left flex gap-3 align-center border-accent animate-fade-in" style={{ background: 'linear-gradient(135deg, rgba(30,58,138,0.15), rgba(59,130,246,0.1))', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', animation: 'fadeIn 0.5s ease-out' }}>
                       <div className="p-2 rounded-circle" style={{ background: '#3B82F6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Mail size={16} />
                       </div>
@@ -2520,76 +2521,222 @@ export default function CRM() {
                       </div>
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Real-time scrolling speech transcript box */}
-              {(callStatus === "Connected" || callStatus === "Completed") && (
-                <div className="flex flex-col gap-2">
-                  <div className="flex align-center justify-between pl-1 pr-1">
-                    <div className="text-left font-bold text-muted font-small">Live Call Transcription:</div>
-                    <div style={{ fontSize: '10px', color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#a5b4fc', display: 'inline-block', animation: 'pulse 1.5s infinite' }}></span>
-                      Sarvam Neural Voice ({{ en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN' }[automationLang]})
-                    </div>
-                  </div>
-                  <div id="auto-transcript-box" className="transcript-box">
-                    {visibleTranscript.map((line, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`bubble ${line.sender === 'agent' ? 'bubble-agent' : 'bubble-lead'}`}
-                      >
-                        <span className="block font-bold text-muted" style={{ fontSize: '10px', marginBottom: '3px' }}>
-                          {line.sender === 'agent' ? '🤖 AI Sales Agent' : '👤 Customer'} ({line.time})
-                        </span>
-                        <p>{line.text}</p>
+                  {/* Real-time scrolling speech transcript box */}
+                  {(callStatus === "Connected" || callStatus === "Completed") && (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex align-center justify-between pl-1 pr-1">
+                        <div className="text-left font-bold text-muted font-small">Live Call Transcription:</div>
+                        <div style={{ fontSize: '10px', color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#a5b4fc', display: 'inline-block', animation: 'pulse 1.5s infinite' }}></span>
+                          Sarvam Neural Voice ({{ en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN' }[automationLang]})
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-
-              {/* Post Call Automation Execution Results */}
-              {callStatus === "Completed" && (
-                <div className="glass-card p-4 border-accent bg-glass-tertiary text-left mt-3">
-                  <h4 className="text-green mb-3 flex align-center gap-2"><CheckCircle size={18}/> CRM Pipeline Automation Triggered Successfully</h4>
-                  <div className="grid grid-cols-2 gap-4 font-small text-muted mb-4">
-                    <div>
-                      <p className="mb-2">🟢 <strong>Call Log Saved:</strong> Recorded duration 80 seconds with sentiment <strong>"Interested"</strong>.</p>
-                      <p className="mb-2">🟢 <strong>Kanban Stage Updated:</strong> Lead advanced to stage <strong>"Contacted"</strong>.</p>
-                      <p className="mb-2">🟢 <strong>Interaction Lead Score:</strong> Fit Score increased by 15 points to <strong>90%</strong>.</p>
+                      <div id="auto-transcript-box" className="transcript-box">
+                        {visibleTranscript.map((line, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`bubble ${line.sender === 'agent' ? 'bubble-agent' : 'bubble-lead'}`}
+                          >
+                            <span className="block font-bold text-muted" style={{ fontSize: '10px', marginBottom: '3px' }}>
+                              {line.sender === 'agent' ? '🤖 AI Sales Agent' : '👤 Customer'} ({line.time})
+                            </span>
+                            <p>{line.text}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      <p className="mb-2">🟢 <strong>Followup Call Logged:</strong> Scheduled follow-up for tomorrow at 11:00 AM in Convex DB.</p>
-                      <p className="mb-2">🟢 <strong>PDF Brochure Sent:</strong> RERA brochure for project <strong>{leads.find(l => l._id === activeAutoLeadId)?.project}</strong> dispatched.</p>
+                  )}
+
+                  {/* Post Call Automation Execution Results */}
+                  {callStatus === "Completed" && (
+                    <div className="glass-card p-4 border-accent bg-glass-tertiary text-left mt-3">
+                      <h4 className="text-green mb-3 flex align-center gap-2"><CheckCircle size={18}/> CRM Pipeline Automation Triggered Successfully</h4>
+                      <div className="grid grid-cols-2 gap-4 font-small text-muted mb-4">
+                        <div>
+                          <p className="mb-2">🟢 <strong>Call Log Saved:</strong> Recorded duration 80 seconds with sentiment <strong>"Interested"</strong>.</p>
+                          <p className="mb-2">🟢 <strong>Kanban Stage Updated:</strong> Lead advanced to stage <strong>"Contacted"</strong>.</p>
+                          <p className="mb-2">🟢 <strong>Interaction Lead Score:</strong> Fit Score increased by 15 points to <strong>90%</strong>.</p>
+                        </div>
+                        <div>
+                          <p className="mb-2">🟢 <strong>Followup Call Logged:</strong> Scheduled follow-up for tomorrow at 11:00 AM in Convex DB.</p>
+                          <p className="mb-2">🟢 <strong>PDF Brochure Sent:</strong> RERA brochure for project <strong>{leads.find(l => l._id === activeAutoLeadId)?.project}</strong> dispatched.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 justify-end border-top pt-3">
+                        <button 
+                          className="btn btn-outline flex align-center gap-2"
+                          onClick={() => {
+                            const target = leads.find(l => l._id === activeAutoLeadId);
+                            if (target) {
+                              handleDownloadAutomationBrochure(target.name, target.project, target.bhkPreference);
+                            }
+                          }}
+                        >
+                          <Download size={14} /> Download PDF Brochure
+                        </button>
+                        <button 
+                          className="btn btn-gold px-6"
+                          onClick={() => {
+                            setIsCalling(false);
+                            setCallStatus("Idle");
+                          }}
+                        >
+                          Return to Automation Center
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Simulated Smartphone Column */}
+                {showWhatsAppSim && (
+                  <div className="flex justify-center items-center animate-slide-in-right md:border-l md:pl-6" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                    <div className="smartphone-bezel" style={{
+                      width: '280px',
+                      height: '520px',
+                      background: '#111827',
+                      borderRadius: '36px',
+                      border: '8px solid #374151',
+                      boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), 0 0 20px rgba(212,175,55,0.2)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}>
+                      {/* Speaker Notch */}
+                      <div style={{
+                        width: '110px',
+                        height: '18px',
+                        background: '#374151',
+                        borderRadius: '0 0 12px 12px',
+                        position: 'absolute',
+                        top: 0,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 10
+                      }}></div>
+
+                      {/* WhatsApp Chat Header */}
+                      <div style={{
+                        background: '#075E54',
+                        color: '#fff',
+                        padding: '24px 12px 10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
+                        <span style={{ fontSize: '14px', marginRight: '2px', cursor: 'pointer' }}>←</span>
+                        <div style={{
+                          width: '30px',
+                          height: '30px',
+                          borderRadius: '50%',
+                          background: 'var(--color-accent, #D4AF37)',
+                          color: '#111',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '11px',
+                          fontWeight: 'bold'
+                        }}>SG</div>
+                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Shivalik Group Official</div>
+                          <div style={{ fontSize: '9px', opacity: 0.8 }}>Online (Business Account)</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', opacity: 0.9, fontSize: '12px' }}>
+                          <span>📞</span>
+                          <span>⋮</span>
+                        </div>
+                      </div>
+
+                      {/* Chat Wallpaper Background */}
+                      <div style={{
+                        flex: 1,
+                        background: '#efeae2',
+                        backgroundImage: 'radial-gradient(#dfdcd6 1px, transparent 0)',
+                        backgroundSize: '16px 16px',
+                        padding: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-end',
+                        gap: '10px',
+                        overflowY: 'auto'
+                      }}>
+                        {/* System Timestamp */}
+                        <div style={{
+                          alignSelf: 'center',
+                          background: 'rgba(255, 255, 255, 0.75)',
+                          color: '#54656f',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '9px',
+                          boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
+                          marginBottom: '10px'
+                        }}>
+                          TODAY
+                        </div>
+
+                        {/* Received Message */}
+                        <div style={{
+                          alignSelf: 'flex-start',
+                          background: '#fff',
+                          padding: '6px 10px',
+                          borderRadius: '0 8px 8px 8px',
+                          maxWidth: '85%',
+                          fontSize: '11px',
+                          boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+                          color: '#111',
+                          textAlign: 'left'
+                        }}>
+                          Hi, I would like to get details of your projects.
+                          <div style={{ fontSize: '8px', color: '#667781', textAlign: 'right', marginTop: '2px' }}>11:34 AM</div>
+                        </div>
+
+                        {/* Sent Brochure Message Attachment */}
+                        <div className="animate-slide-up-bubble" style={{
+                          alignSelf: 'flex-end',
+                          background: '#d9fdd3',
+                          padding: '6px',
+                          borderRadius: '8px 0 8px 8px',
+                          maxWidth: '85%',
+                          boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px'
+                        }}>
+                          {/* File attachment preview */}
+                          <div style={{
+                            background: '#c7ebb8',
+                            borderRadius: '6px',
+                            padding: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            borderLeft: '4px solid #b33939'
+                          }}>
+                            <div style={{ color: '#b33939', fontSize: '18px' }}>📄</div>
+                            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {leads.find(l => l._id === activeAutoLeadId)?.project}_RERA_Brochure.pdf
+                              </div>
+                              <div style={{ fontSize: '8px', color: '#667781' }}>4.2 MB • PDF</div>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#111', padding: '0 4px', textAlign: 'left' }}>
+                            Hello {leads.find(l => l._id === activeAutoLeadId)?.name}, here is the brochure for {leads.find(l => l._id === activeAutoLeadId)?.project} project as requested.
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                            <span style={{ fontSize: '8px', color: '#667781' }}>11:35 AM</span>
+                            <span style={{ color: '#53bdeb', fontSize: '10px' }}>✓✓</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex gap-3 justify-end border-top pt-3">
-                    <button 
-                      className="btn btn-outline flex align-center gap-2"
-                      onClick={() => {
-                        const target = leads.find(l => l._id === activeAutoLeadId);
-                        if (target) {
-                          handleDownloadAutomationBrochure(target.name, target.project, target.bhkPreference);
-                        }
-                      }}
-                    >
-                      <Download size={14} /> Download PDF Brochure
-                    </button>
-                    <button 
-                      className="btn btn-gold px-6"
-                      onClick={() => {
-                        setIsCalling(false);
-                        setCallStatus("Idle");
-                      }}
-                    >
-                      Return to Automation Center
-                    </button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
