@@ -133,5 +133,5 @@ export default defineSchema({
     brochureSent: v.boolean(),
     followupScheduled: v.boolean(),
     date: v.string()
-  })
+  }).index("by_leadId", ["leadId"])
 });

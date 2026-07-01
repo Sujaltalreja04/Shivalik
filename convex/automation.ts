@@ -11,7 +11,7 @@ export const getVoiceCalls = query({
     if (args.leadId) {
       return await ctx.db
         .query("voiceCalls")
-        .filter((q) => q.eq(q.field("leadId"), args.leadId))
+        .withIndex("by_leadId", (q) => q.eq("leadId", args.leadId))
         .collect();
     }
     return await ctx.db.query("voiceCalls").order("desc").collect();
@@ -351,7 +351,7 @@ export const resetLeadAutomation = mutation({
     // Delete any voice calls associated with this lead
     const calls = await ctx.db
       .query("voiceCalls")
-      .filter((q) => q.eq(q.field("leadId"), args.leadId))
+      .withIndex("by_leadId", (q) => q.eq("leadId", args.leadId))
       .collect();
 
     for (const call of calls) {
