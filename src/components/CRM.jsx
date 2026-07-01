@@ -372,16 +372,28 @@ export default function CRM() {
 
   // Play a base64 WAV string, returns a Promise that resolves when audio ends
   const playBase64Audio = (base64) => new Promise((resolve) => {
-    const byteChars = atob(base64);
-    const byteArr = new Uint8Array(byteChars.length);
-    for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
-    const blob = new Blob([byteArr], { type: "audio/wav" });
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    sarvamAudioRef.current = audio;
-    audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-    audio.onerror  = () => { URL.revokeObjectURL(url); resolve(); };
-    audio.play().catch(() => resolve());
+    try {
+      const byteChars = atob(base64);
+      const byteArr = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([byteArr], { type: "audio/wav" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      sarvamAudioRef.current = audio;
+      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+      audio.onerror  = (e) => { 
+        console.error("[TTS] Audio playback error event:", e); 
+        URL.revokeObjectURL(url); 
+        resolve(); 
+      };
+      audio.play().catch((err) => {
+        console.error("[TTS] Audio play() promise rejected:", err);
+        resolve();
+      });
+    } catch (err) {
+      console.error("[TTS] playBase64Audio conversion error:", err);
+      resolve();
+    }
   });
 
   const normalizeTextForTTS = (text, langCode) => {
@@ -670,7 +682,8 @@ export default function CRM() {
               pace: 1.0,
               speech_sample_rate: 22050,
               enable_preprocessing: true,
-              model: "bulbul:v3"
+              model: "bulbul:v3",
+              output_audio_codec: "wav"
             })
           });
 
@@ -796,7 +809,8 @@ export default function CRM() {
             pace: 1.0,
             speech_sample_rate: 22050,
             enable_preprocessing: true,
-            model: "bulbul:v3"
+            model: "bulbul:v3",
+            output_audio_codec: "wav"
           })
         });
 
