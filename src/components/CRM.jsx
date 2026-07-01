@@ -2288,7 +2288,7 @@ export default function CRM() {
                           { sender: "lead",  text: `हाँ, मैं ${leadNameText} बोल ${lRaha} हूँ। आप कौन?`, time: "0:06" },
                           { sender: "agent", text: `नमस्ते! मैं शिवालिक ग्रुप से बात कर ${hiAgentSpeak} हूँ। मुझे दिखा कि आपने हमारी परियोजना ${projText} में रुचि दिखाई थी और ${bhkText} फ़्लैट के विकल्प देख रहे थे। क्या यह आपसे बात करने का सही समय है?`, time: "0:18" },
                           { sender: "lead",  text: `हाँ, मैं देख ${lRaha} ${lTha}। मुझे ₹${budText} के बजट के आसपास कोई अच्छा फ़्लैट चाहिए। क्या आपके पास विकल्प उपलब्ध हैं?`, time: "0:25" },
-                          { sender: "agent", text: `बिल्कुल! हमारे पास ${projText} में बहुत अच्छे विकल्प हैं जो आपके बजट में आते हैं। इनमें बेहतरीन धूप, खुली बालकनी और स्मार्ट होम सुविधाएं हैं। क्या मैं आपको आधिकारिक RERA-रजिस्टर्ड PDF ब्रोशर भेज दूँ?`, time: "0:42" },
+                          { sender: "agent", text: `बिल्कुल! हमारे पास ${projText} में बहुत अच्छे विकल्प हैं जो आपके बजट में आते हैं। इनमें बेहतरीन धूप, खुली बालकनी और स्मार्ट होम सुविधाएं हैं। क्या मैं आपको आधिकारिक साइट ब्रोशर भेज दूँ?`, time: "0:42" },
                           { sender: "lead",  text: `हाँ, ज़रूर भेज ${lDijiye} ताकि मैं फ़्लोर प्लान देख ${lSaku}।`, time: "0:48" },
                           { sender: "agent", text: `बहुत बढ़िया! मैंने ब्रोशर भेजने की प्रक्रिया शुरू कर दी है। आपको व्हाट्सएप और ईमेल पर ब्रोशर का लिंक मिल जाएगा। मैं कल सुबह 11:00 बजे एक फ़ॉलो-अप कॉल भी शेड्यूल कर ${hiAgentSpeak} हूँ ताकि हमारी टीम आपके सवालों के जवाब दे सके। क्या यह ठीक रहेगा?`, time: "1:05" },
                           { sender: "lead",  text: `हाँ, कल सुबह 11 बजे ठीक है। धन्यवाद!`, time: "1:11" },
@@ -2304,20 +2304,20 @@ export default function CRM() {
                           { sender: "lead", text: `હા, હું ${leadNameText} બોલું છું. બોલોને, આપ કોણ?`, time: "0:06" },
                           { sender: "agent", text: `આપે થોડા દિવસ પહેલા અમારા ${projText} પ્રોજેક્ટ અંગે પૂછપરછ કરી હતી. ખાસ કરીને ${bhkText} ફ્લેટમાં આપનો રસ હતો. એટલે થોડું માર્ગદર્શન આપવા માટે ફોન કર્યો છે.`, time: "0:18" },
                           { sender: "lead", text: `હા બોલો ${agentGender === "male" ? "સાહેબ" : "બહેન"}, હું હાલમાં ${budText} ના બજેટમાં સારો ફ્લેટ ${gShoDhiRaha}. શું હાલ કોઈ યુનિટ ઉપલબ્ધ છે?`, time: "0:25" },
-                          { sender: "agent", text: `ચોક્કસ ${leadSalutation}. અમારા ${projText} પ્રોજેક્ટમાં હાલમાં ખૂબ સરસ ${bhkText} ના વિકલ્પો ઉપલબ્ધ છે. સારી હવા, કુદરતી પ્રકાશ, વિશાળ બાલ્કની અને તમામ આધુનિક સુવિધાઓ સાથે આવે છે. જો આપને અનુકૂળ હોય તો હું હમણાં જ અધિકૃત RERA મંજૂર બ્રોશર WhatsApp અને Email પર મોકલી દઉં?`, time: "0:42" },
+                          { sender: "agent", text: `ચોક્કસ ${leadSalutation}. અમારા ${projText} પ્રોજેક્ટમાં હાલમાં ખૂબ સરસ ${bhkText} ના વિકલ્પો ઉપલબ્ધ છે. સારી હવા, કુદરતી પ્રકાશ, વિશાળ બાલ્કની અને તમામ આધુનિક સુવિધાઓ સાથે આવે છે. જો આપને અનુકૂળ હોય તો હું હમણાં જ સાઇટ બ્રોશર WhatsApp અને Email પર મોકલી દઉં?`, time: "0:42" },
                           { sender: "lead", text: `હા જરૂર મોકલી આપો. હું અને મારો પરિવાર સાથે બેસીને ફ્લોર પ્લાન અને પ્રાઇસિંગ જોઈ લઈશું.`, time: "0:48" },
                           { sender: "agent", text: `સરસ. બ્રોશર થોડા જ ક્ષણોમાં પહોંચી જશે. હું આવતીકાલે સવારે ૧૧ વાગ્યે ફરી સંપર્ક કરીશ જેથી આપના કોઈ પ્રશ્ન હોય તો તેનું માર્ગદર્શન આપી શકીએ.`, time: "1:05" },
                           { sender: "lead", text: `બરાબર ${agentGender === "male" ? "સાહેબ" : "બહેન"}. આવતીકાલે સવારે વાત કરીએ. આભાર.`, time: "1:11" },
                           { sender: "agent", text: `ખૂબ ખૂબ આભાર ${leadNameText} ${honorific}. આપનો કિંમતી સમય આપવા બદલ આભાર. બ્રોશર જરૂર જોઈ લેજો. શુભ દિવસ.`, time: "1:20" }
                         ];
-                        summary = `શિવાલિક AI આઉટરીચ સફળ રહ્યો. ${leadNameText} એ પ્રોજેક્ટ ${projText} માટે RERA બ્રોશર મંગાવ્યું. કાલે સવારે ૧૧ વાગ્યાનો ફોલો-અપ નક્કી કર્યો.`;
+                        summary = `શિવાલિક AI આઉટરીચ સફળ રહ્યો. ${leadNameText} એ પ્રોજેક્ટ ${projText} માટે સાઇટ બ્રોશર મંગાવ્યું. કાલે સવારે ૧૧ વાગ્યાનો ફોલો-અપ નક્કી કર્યો.`;
     } else {
                         transcript = [
                           { sender: "agent", text: `Hello, is this ${leadNameText}?`, time: "0:02" },
                           { sender: "lead", text: `Yes, this is ${leadNameText}. Who is this?`, time: "0:06" },
                           { sender: "agent", text: `Hi! I'm calling from Shivalik Group. I see you recently inquired about our project, ${projText}, and were checking options for a premium ${bhkText}. Am I reaching you at a good time?`, time: "0:18" },
                           { sender: "lead", text: `Yes, I was looking at that. I'm searching for a property with a budget around ₹${budText} Lakhs. Are there units available?`, time: "0:25" },
-                          { sender: "agent", text: `Yes, absolutely! We have a few premium options in ${projText} that align perfectly. They feature high sunlight ratings, structural height optimization, and modern balconies. Would you like me to send you the official RERA-registered PDF brochure?`, time: "0:42" },
+                          { sender: "agent", text: `Yes, absolutely! We have a few premium options in ${projText} that align perfectly. They feature high sunlight ratings, structural height optimization, and modern balconies. Would you like me to send you the site brochure?`, time: "0:42" },
                           { sender: "lead", text: `Yes, definitely. Please send it over so I can review the floor plans.`, time: "0:48" },
                           { sender: "agent", text: `Wonderful! I have triggered the brochure dispatch system. You'll receive the PDF download link right away. I'm also scheduling a follow-up call for tomorrow at 11:00 AM. Would that be alright?`, time: "1:05" },
                           { sender: "lead", text: `Sure, tomorrow at 11 AM works for me. Thanks!`, time: "1:11" },

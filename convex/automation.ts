@@ -157,7 +157,7 @@ export const executePipelineAutomation = mutation({
         },
         {
           sender: "agent",
-          text: `बिल्कुल! हमारे पास ${project} में बहुत अच्छे विकल्प हैं जो आपके बजट में आते हैं। इनमें बेहतरीन धूप, खुली बालकनी और स्मार्ट होम सुविधाएं हैं। क्या मैं आपको आधिकारिक RERA-रजिस्टर्ड PDF ब्रोशर भेज दूँ?`,
+          text: `बिल्कुल! हमारे पास ${project} में बहुत अच्छे विकल्प हैं जो आपके बजट में आते हैं। इनमें बेहतरीन धूप, खुली बालकनी और स्मार्ट होम सुविधाएं हैं। क्या मैं आपको आधिकारिक साइट ब्रोशर भेज दूँ?`,
           time: "0:42"
         },
         {
@@ -210,7 +210,7 @@ export const executePipelineAutomation = mutation({
         },
         {
           sender: "agent",
-          text: `ચોક્કસ ${leadSalutation}. અમારા ${project} પ્રોજેક્ટમાં હાલમાં ખૂબ સરસ ${bhk} ના વિકલ્પો ઉપલબ્ધ છે. સારી હવા, કુદરતી પ્રકાશ, વિશાળ બાલ્કની અને તમામ આધુનિક સુવિધાઓ સાથે આવે છે. જો આપને અનુકૂળ હોય તો હું હમણાં જ અધિકૃત RERA મંજૂર બ્રોશર WhatsApp અને Email પર મોકલી દઉં?`,
+          text: `ચોક્કસ ${leadSalutation}. અમારા ${project} પ્રોજેક્ટમાં હાલમાં ખૂબ સરસ ${bhk} ના વિકલ્પો ઉપલબ્ધ છે. સારી હવા, કુદરતી પ્રકાશ, વિશાળ બાલ્કની અને તમામ આધુનિક સુવિધાઓ સાથે આવે છે. જો આપને અનુકૂળ હોય તો હું હમણાં જ સાઇટ બ્રોશર WhatsApp અને Email પર મોકલી દઉં?`,
           time: "0:42"
         },
         {
@@ -234,7 +234,7 @@ export const executePipelineAutomation = mutation({
           time: "1:20"
         }
       ];
-      callSummary = `શિવાલિક AI આઉટરીચ સફળ રહ્યો. ${leadName} એ પ્રોજેક્ટ ${project} માટે RERA બ્રોશર મંગાવ્યું. કાલે સવારે ૧૧ વાગ્યાનો ફોલો-અપ નક્કી કર્યો.`;
+      callSummary = `શિવાલિક AI આઉટરીચ સફળ રહ્યો. ${leadName} એ પ્રોજેક્ટ ${project} માટે સાઇટ બ્રોશર મંગાવ્યું. કાલે સવારે ૧૧ વાગ્યાનો ફોલો-અપ નક્કી કર્યો.`;
     } else {
       transcript = [
         {
@@ -259,7 +259,7 @@ export const executePipelineAutomation = mutation({
         },
         {
           sender: "agent",
-          text: `Yes, absolutely! We have a few premium garden-facing ${bhk} options in ${project} that align perfectly with your budget. They feature high sunlight ratings, structural height optimization, and modern glassmorphic balconies. Would you like me to send you the official RERA-registered PDF brochure?`,
+          text: `Yes, absolutely! We have a few premium garden-facing ${bhk} options in ${project} that align perfectly with your budget. They feature high sunlight ratings, structural height optimization, and modern glassmorphic balconies. Would you like me to send you the site brochure?`,
           time: "0:42"
         },
         {
@@ -283,7 +283,7 @@ export const executePipelineAutomation = mutation({
           time: "1:20"
         }
       ];
-      callSummary = `Simulated AI outreach call successful. Customer confirmed interest in a ${bhk} at ${project} with a budget of ${budgetStr}. RERA brochure sent automatically, and a next-day follow-up call has been scheduled.`;
+      callSummary = `Simulated AI outreach call successful. Customer confirmed interest in a ${bhk} at ${project} with a budget of ${budgetStr}. site brochure sent automatically, and a next-day follow-up call has been scheduled.`;
     }
 
     // 2. Save the Call Log to database
