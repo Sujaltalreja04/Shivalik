@@ -133,5 +133,16 @@ export default defineSchema({
     brochureSent: v.boolean(),
     followupScheduled: v.boolean(),
     date: v.string()
+  }).index("by_leadId", ["leadId"]),
+  predictions: defineTable({
+    leadId: v.id("leads"),
+    conversionProbability: v.number(),
+    recommendedLocations: v.array(v.string()),
+    bestFitProperty: v.string(),
+    purchaseBehaviorAnalysis: v.string(),
+    scrapedMarketTrends: v.string(),
+    factorsToConvert: v.array(v.string()),
+    nextBestAction: v.string(),
+    updatedAt: v.string()
   }).index("by_leadId", ["leadId"])
 });

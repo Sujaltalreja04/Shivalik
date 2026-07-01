@@ -13,6 +13,7 @@ import type * as automation from "../automation.js";
 import type * as crm from "../crm.js";
 import type * as inventory from "../inventory.js";
 import type * as leads from "../leads.js";
+import type * as predictions from "../predictions.js";
 import type * as properties from "../properties.js";
 import type * as seed from "../seed.js";
 
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   crm: typeof crm;
   inventory: typeof inventory;
   leads: typeof leads;
+  predictions: typeof predictions;
   properties: typeof properties;
   seed: typeof seed;
 }>;
