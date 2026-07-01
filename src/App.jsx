@@ -253,6 +253,12 @@ export default function App() {
 
   const [role, setRole] = useState("buyer"); 
   const [activeBuyerPersonaId, setActiveBuyerPersonaId] = useState("");
+  const [showGate, setShowGate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !localStorage.getItem('shivalik_portal_selected');
+    }
+    return true;
+  });
 
   // Convex Data — fallback to [] so app renders even when Convex backend is offline
   const properties = useQuery(api.properties?.getProperties) ?? [];
@@ -1360,8 +1366,180 @@ export default function App() {
     return rows;
   };
 
+  const selectPortalMode = (selectedRole, tabName) => {
+    setRole(selectedRole);
+    setActiveTab(tabName);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('shivalik_portal_selected', 'true');
+    }
+    setShowGate(false);
+  };
+
   return (
     <div className="app-container">
+      {/* ── VISITOR ENTRY GATEWAY MODAL (DE-MERGED VIEWS) ── */}
+      {showGate && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(3, 7, 18, 0.65)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px'
+        }}>
+          <div className="glass-card glow-gold animate-scale-in" style={{
+            maxWidth: '680px',
+            width: '100%',
+            padding: '40px 32px',
+            textAlign: 'center',
+            backgroundImage: 'linear-gradient(to bottom, rgba(6, 9, 22, 0.88), rgba(10, 16, 32, 0.96)), url("/skyview.png")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundBlendMode: 'overlay',
+            border: '1.5px solid rgba(245, 158, 11, 0.4)',
+            borderRadius: '20px',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.95)'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              padding: '14px',
+              borderRadius: '16px',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              marginBottom: '16px',
+            }}>
+              <span style={{ fontSize: '28px', filter: 'drop-shadow(0 0 8px rgba(245,158,11,0.6))' }}>🏗️</span>
+            </div>
+            
+            <h2 className="text-gradient-gold" style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px', fontFamily: 'var(--font-heading)' }}>
+              Select Workspace
+            </h2>
+            <p style={{ fontSize: '13.5px', color: '#CBD5E1', maxWidth: '480px', margin: '0 auto 28px auto', lineHeight: 1.5, fontFamily: 'var(--font-body)' }}>
+              Choose your dedicated workspace to experience the Shivalik Group virtual portal environment:
+            </p>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              marginBottom: '24px'
+            }}>
+              {/* Option 1: Client Site */}
+              <div 
+                onClick={() => selectPortalMode('buyer', 'landing')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '18px 22px',
+                  cursor: 'pointer',
+                  border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.25s ease',
+                  borderRadius: '12px',
+                  textAlign: 'left'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(245,158,11,0.7)';
+                  e.currentTarget.style.background = 'rgba(245,158,11,0.12)';
+                  e.currentTarget.style.transform = 'translateX(6px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.75)';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <div style={{ fontSize: '26px' }}>🌐</div>
+                <div>
+                  <h4 style={{ margin: '0 0 3px 0', color: '#fff', fontSize: '14.5px', fontWeight: 700 }}>Client Site</h4>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#94A3B8' }}>3D models, layout builders, virtual walkthrough tours, and custom planners.</p>
+                </div>
+              </div>
+
+              {/* Option 2: Shivalik CoPilot */}
+              <div 
+                onClick={() => selectPortalMode('buyer', 'copilot')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '18px 22px',
+                  cursor: 'pointer',
+                  border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.25s ease',
+                  borderRadius: '12px',
+                  textAlign: 'left'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(245,158,11,0.7)';
+                  e.currentTarget.style.background = 'rgba(245,158,11,0.12)';
+                  e.currentTarget.style.transform = 'translateX(6px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.75)';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <div style={{ fontSize: '26px' }}>🤖</div>
+                <div>
+                  <h4 style={{ margin: '0 0 3px 0', color: 'var(--color-accent)', fontSize: '14.5px', fontWeight: 700 }}>Shivalik CoPilot</h4>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#94A3B8' }}>Advanced AI architectural assistant, sunlight calculator, blueprint analyser.</p>
+                </div>
+              </div>
+
+              {/* Option 3: Executive CRM */}
+              <div 
+                onClick={() => selectPortalMode('sales', 'leads')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '18px 22px',
+                  cursor: 'pointer',
+                  border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.25s ease',
+                  borderRadius: '12px',
+                  textAlign: 'left'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(245,158,11,0.7)';
+                  e.currentTarget.style.background = 'rgba(245,158,11,0.12)';
+                  e.currentTarget.style.transform = 'translateX(6px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.75)';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <div style={{ fontSize: '26px' }}>📊</div>
+                <div>
+                  <h4 style={{ margin: '0 0 3px 0', color: '#fff', fontSize: '14.5px', fontWeight: 700 }}>Sales CRM Portal</h4>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#94A3B8' }}>Objection scripts coach, SMS nurture drip builder, close-chance Gantt tool.</p>
+                </div>
+              </div>
+            </div>
+
+            <p style={{ margin: 0, color: '#94A3B8', opacity: 0.8, fontSize: '11px' }}>
+              * Choose one to launch. Switch portals anytime via the left sidebar pane view mode indicators.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Main App Container */}
+      <div className="app-container" style={{ opacity: showGate ? 0 : 1, transition: 'opacity 0.4s ease' }}>
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -3879,6 +4057,7 @@ export default function App() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
