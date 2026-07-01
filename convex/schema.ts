@@ -23,6 +23,11 @@ export default defineSchema({
     occupation: v.optional(v.string()),
     annualIncome: v.optional(v.number()),
     notes: v.optional(v.string()),
+    // Automation Pipeline Fields
+    automationStatus: v.optional(v.string()),
+    lastCallId: v.optional(v.string()),
+    brochureSent: v.optional(v.boolean()),
+    brochureSentTime: v.optional(v.string()),
   }),
   activityStream: defineTable({
     message: v.string(),
@@ -111,5 +116,22 @@ export default defineSchema({
     pickupLocation: v.optional(v.string()),
     feedback: v.optional(v.string()),
     interestLevel: v.string() // Hot, Warm, Cold
+  }),
+  voiceCalls: defineTable({
+    leadId: v.id("leads"),
+    leadName: v.string(),
+    project: v.string(),
+    status: v.string(),
+    duration: v.number(),
+    transcript: v.array(v.object({
+      sender: v.string(),
+      text: v.string(),
+      time: v.string()
+    })),
+    summary: v.string(),
+    sentiment: v.string(),
+    brochureSent: v.boolean(),
+    followupScheduled: v.boolean(),
+    date: v.string()
   })
 });

@@ -9,6 +9,7 @@
  */
 
 import type * as activity from "../activity.js";
+import type * as automation from "../automation.js";
 import type * as crm from "../crm.js";
 import type * as inventory from "../inventory.js";
 import type * as leads from "../leads.js";
@@ -23,6 +24,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activity: typeof activity;
+  automation: typeof automation;
   crm: typeof crm;
   inventory: typeof inventory;
   leads: typeof leads;

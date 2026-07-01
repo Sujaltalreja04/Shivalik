@@ -5245,8 +5245,132 @@ h1, h2, h3, h4, h5, h6 {
     background: rgba(212, 175, 55, 0.05) !important;
 }
 
+/* AI Sales Automation Center Custom CSS Styles */
+.automation-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
 
+.automation-flex-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
 
+@media (max-width: 1024px) {
+    .automation-flex-layout {
+        grid-template-columns: 1fr;
+    }
+}
 
+.wave-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 50px;
+    margin: 15px 0;
+}
 
+.wave-bar {
+    width: 3.5px;
+    height: 10px;
+    background-color: var(--color-accent);
+    border-radius: 4px;
+    animation: bounce 0.8s ease-in-out infinite alternate;
+}
 
+@keyframes bounce {
+    0% { height: 10px; opacity: 0.3; }
+    100% { height: 40px; opacity: 1; }
+}
+
+.wave-bar:nth-child(2) { animation-delay: 0.1s; height: 15px; }
+.wave-bar:nth-child(3) { animation-delay: 0.25s; height: 20px; }
+.wave-bar:nth-child(4) { animation-delay: 0.15s; height: 12px; }
+.wave-bar:nth-child(5) { animation-delay: 0.3s; height: 25px; }
+.wave-bar:nth-child(6) { animation-delay: 0.2s; height: 18px; }
+.wave-bar:nth-child(7) { animation-delay: 0.05s; height: 14px; }
+
+.pulse-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(var(--color-accent-rgb), 0.1);
+    border: 2px solid var(--color-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px auto;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb), 0.4); }
+    70% { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(var(--color-accent-rgb), 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb), 0); }
+}
+
+.transcript-box {
+    background: rgba(8, 15, 33, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--border-radius-md);
+    padding: 15px;
+    height: 240px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    position: relative;
+    word-break: break-word;
+}
+
+.bubble-agent {
+    background: rgba(215, 175, 55, 0.08);
+    border: 1px solid rgba(215, 175, 55, 0.2);
+    color: var(--color-text);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+}
+
+.bubble-lead {
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    color: var(--color-text);
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+}
+
+.dialer-view {
+    background: rgba(19, 29, 53, 0.95);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: var(--border-radius-lg);
+    padding: 30px;
+    text-align: center;
+    box-shadow: var(--shadow-premium);
+    backdrop-filter: blur(15px);
+}
+
+.ai-badge {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--color-accent);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+}

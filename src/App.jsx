@@ -254,13 +254,13 @@ export default function App() {
   const [role, setRole] = useState("buyer"); 
   const [activeBuyerPersonaId, setActiveBuyerPersonaId] = useState("");
 
-  // Convex Data
-  const properties = useQuery(api.properties?.getProperties);
-  const inventory = useQuery(api.inventory?.getInventory);
-  const activityStream = useQuery(api.activity?.getActivity);
+  // Convex Data — fallback to [] so app renders even when Convex backend is offline
+  const properties = useQuery(api.properties?.getProperties) ?? [];
+  const inventory = useQuery(api.inventory?.getInventory) ?? [];
+  const activityStream = useQuery(api.activity?.getActivity) ?? [];
   const addActivity = useMutation(api.activity?.addActivity);
-  const leads = useQuery(api.leads?.getLeads);
-  const payments = useQuery(api.crm?.getPayments);
+  const leads = useQuery(api.leads?.getLeads) ?? [];
+  const payments = useQuery(api.crm?.getPayments) ?? [];
   // Project discovery filters
   const [filterLoc, setFilterLoc] = useState("all");
   const [filterBhk, setFilterBhk] = useState("all");
@@ -1288,15 +1288,7 @@ export default function App() {
     };
   }, [copilotGraphMode, copilotChartType, activeTab]);
 
-  // Loading guard — placed AFTER all hooks to comply with Rules of Hooks
-  if (properties === undefined || inventory === undefined || leads === undefined || payments === undefined) {
-    return (
-      <div className="flex align-center justify-center h-100 w-100" style={{ minHeight: '100vh', background: '#0b0f1d', color: '#D4AF37', flexDirection: 'column', gap: '15px' }}>
-        <RefreshCw className="animate-spin" size={36} style={{ animation: 'spin 1.5s linear infinite' }} />
-        <h3>Connecting to Shivalik Cloud Database...</h3>
-      </div>
-    );
-  }
+  // Loading guard removed — Convex queries now default to [] so app renders immediately offline
 
   const handleRoleChange = (roleVal) => {
     setRole(roleVal);
